@@ -4,11 +4,13 @@ import (
 	"embed"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 
 	"cvmaker/internal/features/cv"
 	"cvmaker/internal/features/settings"
@@ -30,13 +32,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	appDir := homeDir + "/.cvmaker"
+	appDir := filepath.Join(homeDir, ".cvmaker")
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		slog.Error("failed to create app directory", "error", err)
 		os.Exit(1)
 	}
 
-	dbPath := appDir + "/cvmaker.db"
+	dbPath := filepath.Join(appDir, "cvmaker.db")
 	dbConn, err := db.InitDB(dbPath, migrations.FS)
 	if err != nil {
 		slog.Error("failed to init db", "error", err)
@@ -69,6 +71,12 @@ func main() {
 			Appearance:           mac.NSAppearanceNameAqua,
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
+		},
+		Windows: &windows.Options{
+			WebviewIsTransparent: false,
+			WindowIsTranslucent:  false,
+			BackdropType:         windows.Mica,
+			DisableWindowIcon:    false,
 		},
 	})
 
