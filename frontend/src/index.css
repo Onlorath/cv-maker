@@ -1,0 +1,349 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital@1&display=swap');
+
+:root {
+  /* ---- Light Mode (Varsayılan) ---- */
+  --bg-app: #E7E9EC;
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel-solid: #FFFFFF;
+  --panel-card: #FCFCFD;
+  --panel-chip: #F1F2F4;
+  --ink: #1C1C1E;
+  --ink-secondary: #6E6E73;
+  --ink-faint: #9C9CA1;
+  --border: rgba(60, 60, 67, 0.14);
+  --border-strong: rgba(60, 60, 67, 0.22);
+  --accent: #1E3A5F;
+  --accent-hover: #16304F;
+  --accent-soft: rgba(30, 58, 95, 0.08);
+  --accent-soft-strong: rgba(30, 58, 95, 0.14);
+  --preview-desk: linear-gradient(to bottom, #F0F1F3, #E9EAEC);
+  --titlebar-bg: linear-gradient(to bottom, #FBFBFC, #F3F4F6);
+  --sidebar-bg: linear-gradient(to bottom, #FAFAFB, #F3F4F6);
+  --input-bg: #FCFCFD;
+  --modal-bg: #FFFFFF;
+  --modal-card: #F8F9FA;
+  --modal-card-hover: #EFF1F4;
+
+  --seal: #B8862E;
+  --seal-ring: #D9AE5C;
+  --seal-ink: #FDF6E8;
+
+  /* ---- Tipografi ---- */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-doc: "Noto Sans", -apple-system, sans-serif;
+
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 7px;
+}
+
+/* ---- Uzay Siyahı / Space Black Theme ---- */
+.dark, [data-theme="dark"] {
+  --bg-app: #08090C;
+  --panel: rgba(18, 20, 29, 0.85);
+  --panel-solid: #0D0F15;
+  --panel-card: #141722;
+  --panel-chip: #1B1F2D;
+  --ink: #F3F4F6;
+  --ink-secondary: #9CA3AF;
+  --ink-faint: #606775;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --accent: #38BDF8;
+  --accent-hover: #0EA5E9;
+  --accent-soft: rgba(56, 189, 248, 0.12);
+  --accent-soft-strong: rgba(56, 189, 248, 0.22);
+  --preview-desk: radial-gradient(circle at 50% 30%, #151825 0%, #0A0C12 100%);
+  --titlebar-bg: linear-gradient(to bottom, #131620, #0D0F15);
+  --sidebar-bg: linear-gradient(to bottom, #11141D, #0A0C12);
+  --input-bg: #141722;
+  --modal-bg: #12151F;
+  --modal-card: #181C28;
+  --modal-card-hover: #212636;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--panel-solid);
+  color: var(--ink);
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ================= APP WINDOW (fills Wails webview) ================= */
+.app-window {
+  width: 100vw;
+  height: 100vh;
+  background: var(--panel-solid);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 210px minmax(360px, 1.2fr) minmax(440px, 1.5fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Form Input & Labels */
+.field-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 5px;
+}
+
+.native-input, .native-textarea {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--input-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  transition: border-color .12s ease, box-shadow .12s ease, background-color .15s ease, color .15s ease;
+}
+
+.native-input:focus, .native-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none;
+}
+
+.native-textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+/* Animations */
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadein .18s ease forwards;
+}
+
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.18);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.32);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ATS Seal Styling */
+.ats-seal {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, var(--seal-ring) 0%, var(--seal) 60%, #9C6E22 100%),
+    repeating-conic-gradient(from 0deg, rgba(0,0,0,0.09) 0deg 2.5deg, transparent 2.5deg 10deg);
+  box-shadow:
+    0 3px 8px rgba(120, 84, 20, 0.35),
+    inset 0 1px 1px rgba(255,255,255,.45),
+    inset 0 -2px 4px rgba(0,0,0,.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: transform .25s ease;
+  user-select: none;
+}
+
+.ats-seal:hover {
+  transform: scale(1.04) rotate(-3deg);
+}
+
+.ats-seal text {
+  font-family: var(--font-ui);
+  font-size: 8.4px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  fill: var(--seal-ink);
+}
+
+/* Resume Sheet Paper Metaphor - Exact 1:1 scaling with ATSClassicTemplate */
+.resume-sheet-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 20px 0;
+}
+
+.resume-sheet {
+  width: 595px;
+  height: 842px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 18px 34px -14px rgba(20,24,33,.35);
+  font-family: Roboto, -apple-system, sans-serif;
+  color: #1e293b;
+  box-sizing: border-box;
+  overflow: hidden;
+  
+  /* Scale & Margin dynamically handled by React ResizeObserver */
+  transform-origin: top center;
+  
+  /* ATSClassicTemplate exact layout mappings */
+  padding: 32px 36px;
+}
+
+.rs-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  border-bottom: 1.5px solid #0f172a;
+  padding-bottom: 12px;
+}
+.rs-header-text {
+  flex-grow: 1;
+  padding-right: 12px;
+}
+.rs-name {
+  font-size: 22px;
+  font-weight: bold;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  margin: 0 0 2px 0;
+}
+.rs-job-title {
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
+  margin: 0 0 6px 0;
+}
+.rs-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 8.5px;
+  color: #64748b;
+  gap: 2px 12px;
+}
+.rs-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #cbd5e1;
+}
+.rs-section {
+  margin-bottom: 0px;
+}
+.rs-section-title {
+  font-size: 10.5px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 3px;
+  margin: 10px 0 6px 0;
+}
+.rs-summary-text {
+  font-size: 9px;
+  line-height: 1.45;
+  color: #334155;
+  margin: 0 0 6px 0;
+}
+.rs-entry-block {
+  margin-bottom: 7px;
+}
+.rs-entry-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.rs-entry-title {
+  font-size: 10px;
+  font-weight: bold;
+  color: #0f172a;
+}
+.rs-entry-subtitle {
+  font-size: 9.5px;
+  color: #334155;
+  font-weight: 500;
+}
+.rs-entry-dates, .rs-entry-location {
+  font-size: 8.5px;
+  color: #64748b;
+}
+.rs-bullet-list {
+  margin-top: 2.5px;
+}
+.rs-bullet-row {
+  display: flex;
+  margin-top: 2.5px;
+}
+.rs-bullet-dot {
+  width: 8px;
+  font-size: 8.5px;
+  color: #64748b;
+}
+.rs-bullet-text {
+  flex: 1;
+  font-size: 9px;
+  line-height: 1.35;
+  color: #334155;
+}
+.rs-skills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.rs-skill-chip {
+  font-size: 8.5px;
+  color: #1e293b;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 0.5px solid #e2e8f0;
+  margin-right: 4px;
+  margin-bottom: 3px;
+}
+
+/* Flash animation for preview headings */
+.heading-flash {
+  color: var(--seal) !important;
+  transition: color 0.7s ease;
+}
