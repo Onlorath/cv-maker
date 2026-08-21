@@ -36,6 +36,7 @@ export const CVEditorPane: React.FC = () => {
         return <PersonalDetailsPanel />;
       }
     }
+    
   };
 
   return (
