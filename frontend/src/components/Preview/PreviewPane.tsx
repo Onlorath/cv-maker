@@ -25,7 +25,7 @@ export const PreviewPane: React.FC = () => {
     <>
       <aside
         className="w-full h-full p-5 overflow-y-auto custom-scrollbar flex flex-col items-center shrink-0 border-l border-[var(--border)] transition-colors"
-        style={{ background: "var(--preview-desk)" }}
+        style={{ background: "var(--preview-desk)", scrollbarGutter: "stable" }}
       >
         {/* Preview Toolbar */}
         <div className="w-full flex items-center justify-between mb-4">

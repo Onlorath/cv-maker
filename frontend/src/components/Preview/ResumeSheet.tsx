@@ -97,18 +97,32 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv }) => {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    let animationFrameId: number;
+
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
-      if (entry) {
-        // Leave 20px padding (10px on each side)
-        const availableWidth = entry.contentRect.width - 20;
-        let newScale = availableWidth / 595;
-        if (newScale > 1) newScale = 1;
-        setScale(newScale);
-      }
+      if (!entry) return;
+
+      // Leave 20px padding (10px on each side)
+      const availableWidth = entry.contentRect.width - 20;
+      let newScale = availableWidth / 595;
+      if (newScale > 1) newScale = 1;
+      if (newScale < 0.2) newScale = 0.2;
+
+      // Round to 3 decimal places to prevent subpixel layout oscillations
+      newScale = Math.round(newScale * 1000) / 1000;
+
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(() => {
+        setScale((prev) => (Math.abs(prev - newScale) > 0.005 ? newScale : prev));
+      });
     });
+
     observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   const sheetHeight = 842;

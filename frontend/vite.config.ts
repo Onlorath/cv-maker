@@ -4,9 +4,13 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    sourcemap: true,
+  },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 })
+

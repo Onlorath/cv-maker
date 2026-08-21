@@ -10,7 +10,8 @@ import { GenericSectionPanel } from "./GenericSectionPanel";
 export const CVEditorPane: React.FC = () => {
   const hasCV = useCVStore((state) => state.cv !== null);
   const activePanel = useCVStore((state) => state.activePanel);
-  const sections = useCVStore((state) => state.cv?.sections || []);
+  const rawSections = useCVStore((state) => state.cv?.sections);
+  const sections = rawSections || [];
 
   if (!hasCV) return null;
 

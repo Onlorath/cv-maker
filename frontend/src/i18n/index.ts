@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useCVStore } from "../store/useCVStore";
 import { tr } from "./locales/tr";
 import { en } from "./locales/en";
@@ -42,9 +43,12 @@ export function translate(
 export function useTranslation() {
   const lang = useCVStore((state) => (state.cv?.language || "tr")) as Language;
 
-  const t = (key: TranslationKey, params?: InterpolationParams): string => {
-    return translate(key, lang, params);
-  };
+  const t = useCallback(
+    (key: TranslationKey, params?: InterpolationParams): string => {
+      return translate(key, lang, params);
+    },
+    [lang]
+  );
 
   return { t, lang, isEn: lang === "en", isTr: lang === "tr" };
 }

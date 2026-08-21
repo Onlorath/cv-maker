@@ -16,7 +16,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
   const activePanel = useCVStore((state) => state.activePanel);
   const setActivePanel = useCVStore((state) => state.setActivePanel);
   const deleteSection = useCVStore((state) => state.deleteSection);
-  const sections = useCVStore((state) => state.cv?.sections || []);
+  const rawSections = useCVStore((state) => state.cv?.sections);
+  const sections = rawSections || [];
   const [isExporting, setIsExporting] = useState(false);
 
   const handlePanelClick = (panelKey: string) => {
