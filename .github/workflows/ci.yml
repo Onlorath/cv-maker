@@ -27,6 +27,11 @@ jobs:
       - name: Install Go Dependencies
         run: go mod download
 
+      - name: Create frontend dist placeholder for go:embed
+        run: |
+          mkdir -p frontend/dist
+          touch frontend/dist/index.html
+
       - name: Run Go Vet
         run: go vet ./...
 
