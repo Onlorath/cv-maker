@@ -31,7 +31,14 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install NSIS
-        run: choco install nsis -y --no-progress
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          if (Test-Path "C:\Program Files (x86)\NSIS") {
+            "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          } elseif (Test-Path "C:\Program Files\NSIS") {
+            "C:\Program Files\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
 
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -49,23 +56,18 @@ jobs:
         run: |
           cd build/bin
           Compress-Archive -Path cv_maker.exe -DestinationPath cv_maker-windows-amd64.zip -Force
-          # Find and normalize installer name
           $installer = Get-ChildItem -Filter "*installer*.exe" | Select-Object -First 1
           if ($installer) {
             Copy-Item $installer.FullName -Destination "cv_maker-windows-installer.exe"
           }
 
-      - name: Upload Windows Portable Zip
+      - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-portable
-          path: build/bin/cv_maker-windows-amd64.zip
-
-      - name: Upload Windows Installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installer
-          path: build/bin/*installer*.exe
+          name: windows-artifacts
+          path: |
+            build/bin/cv_maker-windows-amd64.zip
+            build/bin/cv_maker-windows-installer.exe
 
   build-macos:
     name: Build macOS (Universal App Bundle)
@@ -105,10 +107,10 @@ jobs:
           codesign --force --deep --sign - cv_maker.app 2>/dev/null || true
           zip -r -y -q cv_maker-macos-universal.zip cv_maker.app
 
-      - name: Upload macOS Zip
+      - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-universal
+          name: macos-artifacts
           path: build/bin/cv_maker-macos-universal.zip
 
   publish-release:
@@ -119,25 +121,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Download Windows Portable
+      - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: windows-portable
-          path: dist-release/
+          path: dist-release
+          merge-multiple: true
 
-      - name: Download Windows Installer
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-installer
-          path: dist-release/
+      - name: Inspect Dist Release Directory
+        run: ls -la dist-release/
 
-      - name: Download macOS Zip
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-universal
-          path: dist-release/
-
-      - name: Create GitHub Release
+      - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist-release/*
