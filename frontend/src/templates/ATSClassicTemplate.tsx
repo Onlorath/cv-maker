@@ -1,6 +1,7 @@
-import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, Link, StyleSheet } from "@react-pdf/renderer";
 import { registerCVFonts } from "./fonts";
 import type { CVEntry, CVSection, CVTemplateProps } from "../types/cv";
+import { getSectionDisplayTitle } from "../i18n";
 
 registerCVFonts();
 
@@ -139,6 +140,74 @@ const styles = StyleSheet.create({
   },
 });
 
+function cleanUrlDisplay(url: string): string {
+  if (!url) return "";
+  return url
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/+$/, "");
+}
+
+function getHref(value: string, type: "email" | "phone" | "url"): string {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  if (type === "email") {
+    return trimmed.startsWith("mailto:") ? trimmed : `mailto:${trimmed}`;
+  }
+  if (type === "phone") {
+    return `tel:${trimmed.replace(/\s+/g, "")}`;
+  }
+  if (type === "url") {
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
+function parseBullets(text: string): string[] {
+  if (!text) return [];
+  const lines = text.split("\n");
+  const bullets: string[] = [];
+  let currentBullet = "";
+
+  const isBulletStart = (line: string) => /^[-*•]\s*/.test(line.trim());
+  const hasAnyBullets = lines.some((l) => isBulletStart(l));
+
+  if (!hasAnyBullets) {
+    return lines.map((l) => l.trim()).filter(Boolean);
+  }
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      if (currentBullet) {
+        bullets.push(currentBullet);
+        currentBullet = "";
+      }
+      continue;
+    }
+
+    if (isBulletStart(trimmed)) {
+      if (currentBullet) {
+        bullets.push(currentBullet);
+      }
+      currentBullet = trimmed.replace(/^[-*•]\s*/, "");
+    } else {
+      if (currentBullet) {
+        currentBullet += " " + trimmed;
+      } else {
+        currentBullet = trimmed;
+      }
+    }
+  }
+
+  if (currentBullet) {
+    bullets.push(currentBullet);
+  }
+
+  return bullets;
+}
+
 function formatDateRange(entry: CVEntry, lang: "tr" | "en"): string {
   const present = lang === "tr" ? "Devam Ediyor" : "Present";
   const start = entry.dateStart ?? "";
@@ -148,12 +217,7 @@ function formatDateRange(entry: CVEntry, lang: "tr" | "en"): string {
 }
 
 function BulletList({ text }: { text: string }) {
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => l.replace(/^[-*•]\s*/, ""));
-
+  const lines = parseBullets(text);
   if (lines.length === 0) return null;
 
   return (
@@ -185,6 +249,45 @@ function StandardEntry({ entry, lang }: { entry: CVEntry; lang: "tr" | "en" }) {
   );
 }
 
+function SkillsList({ entries }: { entries: CVEntry[] }) {
+  const hasCategories = entries.some(
+    (e) => (e.description || "").trim().length > 0 || (e.title || "").includes(":")
+  );
+
+  if (hasCategories) {
+    return (
+      <View style={{ marginTop: 2, marginBottom: 4 }}>
+        {entries.map((e) => (
+          <View key={e.id} style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 2.5 }}>
+            {e.title ? (
+              <Text style={{ fontFamily: "Roboto", fontWeight: 700, fontSize: 9.5, color: "#0f172a" }}>
+                {e.title}:{" "}
+              </Text>
+            ) : null}
+            <Text style={{ fontFamily: "Roboto", fontSize: 9.5, color: "#334155" }}>
+              {e.description || e.title}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.skillsWrap}>
+      {entries.map((e) => {
+        const level = (e.meta?.level as string | undefined) ?? "";
+        return (
+          <Text key={e.id} style={styles.skillChip}>
+            {e.title}
+            {level ? ` (${level})` : ""}
+          </Text>
+        );
+      })}
+    </View>
+  );
+}
+
 function ChipList({ entries }: { entries: CVEntry[] }) {
   return (
     <View style={styles.skillsWrap}>
@@ -207,19 +310,30 @@ function Section({ section, lang }: { section: CVSection; lang: "tr" | "en" }) {
     (a.orderKey || "").localeCompare(b.orderKey || "")
   );
 
-  const isChipStyle =
-    section.sectionType === "skills" || section.sectionType === "languages";
+  if (section.sectionType === "skills") {
+    return (
+      <View>
+        <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
+        <SkillsList entries={sortedEntries} />
+      </View>
+    );
+  }
+
+  if (section.sectionType === "languages") {
+    return (
+      <View>
+        <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
+        <ChipList entries={sortedEntries} />
+      </View>
+    );
+  }
 
   return (
     <View>
-      <Text style={styles.sectionTitle}>{section.title}</Text>
-      {isChipStyle ? (
-        <ChipList entries={sortedEntries} />
-      ) : (
-        sortedEntries.map((entry) => (
-          <StandardEntry key={entry.id} entry={entry} lang={lang} />
-        ))
-      )}
+      <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
+      {sortedEntries.map((entry) => (
+        <StandardEntry key={entry.id} entry={entry} lang={lang} />
+      ))}
     </View>
   );
 }
@@ -229,14 +343,25 @@ export function ATSClassicTemplate({ data }: CVTemplateProps) {
     (a.orderKey || "").localeCompare(b.orderKey || "")
   );
 
-  const contactParts = [
-    data.email,
-    data.phone,
-    data.location,
-    data.linkedin,
-    data.github,
-    data.website,
-  ].filter(Boolean);
+  const contactItems: { text: string; href?: string }[] = [];
+  if (data.email) {
+    contactItems.push({ text: data.email, href: getHref(data.email, "email") });
+  }
+  if (data.phone) {
+    contactItems.push({ text: data.phone, href: getHref(data.phone, "phone") });
+  }
+  if (data.location) {
+    contactItems.push({ text: data.location });
+  }
+  if (data.linkedin) {
+    contactItems.push({ text: cleanUrlDisplay(data.linkedin), href: getHref(data.linkedin, "url") });
+  }
+  if (data.github) {
+    contactItems.push({ text: cleanUrlDisplay(data.github), href: getHref(data.github, "url") });
+  }
+  if (data.website) {
+    contactItems.push({ text: cleanUrlDisplay(data.website), href: getHref(data.website, "url") });
+  }
 
   return (
     <Document title={`${data.fullName || "CV"} - Resume`} author={data.fullName || "User"}>
@@ -247,11 +372,17 @@ export function ATSClassicTemplate({ data }: CVTemplateProps) {
             <Text style={styles.name}>{data.fullName || "Your Name"}</Text>
             {data.jobTitle ? <Text style={styles.jobTitle}>{data.jobTitle}</Text> : null}
             <View style={styles.contactRow}>
-              {contactParts.map((part, i) => (
-                <Text key={i} style={styles.contactItem}>
-                  {part}
-                </Text>
-              ))}
+              {contactItems.map((item, i) =>
+                item.href ? (
+                  <Link key={i} src={item.href} style={styles.contactItem}>
+                    {item.text}
+                  </Link>
+                ) : (
+                  <Text key={i} style={styles.contactItem}>
+                    {item.text}
+                  </Text>
+                )
+              )}
             </View>
           </View>
 

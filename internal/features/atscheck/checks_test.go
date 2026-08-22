@@ -173,6 +173,92 @@ func TestScoreNeverGoesBelowZero(t *testing.T) {
 	t.Logf("en kötü senaryo skoru: %d, bulgu sayısı: %d", report.Score, len(report.Findings))
 }
 
+func TestEnglishCV_ProducesEnglishFindings(t *testing.T) {
+	c := &cv.CV{
+		Language: "en",
+		FullName: "",
+		Email:    "invalid-email",
+		Phone:    "",
+		Summary:  "",
+		Sections: []cv.Section{
+			{
+				Title:       "Work Experience",
+				SectionType: cv.SectionExperience,
+				Entries:     nil,
+			},
+		},
+	}
+
+	report := Run(c)
+	for _, f := range report.Findings {
+		switch f.Code {
+		case "missing_full_name":
+			if !strings.Contains(f.Message, "Full name is missing") {
+				t.Errorf("expected English missing_full_name message, got: %s", f.Message)
+			}
+		case "invalid_email_format":
+			if !strings.Contains(f.Message, "Email format appears invalid") {
+				t.Errorf("expected English invalid_email_format message, got: %s", f.Message)
+			}
+		case "missing_phone":
+			if !strings.Contains(f.Message, "Phone number is empty") {
+				t.Errorf("expected English missing_phone message, got: %s", f.Message)
+			}
+		case "missing_summary":
+			if !strings.Contains(f.Message, "Professional summary is empty") {
+				t.Errorf("expected English missing_summary message, got: %s", f.Message)
+			}
+		case "empty_section":
+			if !strings.Contains(f.Message, "section has been added but contains no entries") {
+				t.Errorf("expected English empty_section message, got: %s", f.Message)
+			}
+		}
+	}
+}
+
+func TestTurkishCV_ProducesTurkishFindings(t *testing.T) {
+	c := &cv.CV{
+		Language: "tr",
+		FullName: "",
+		Email:    "invalid-email",
+		Phone:    "",
+		Summary:  "",
+		Sections: []cv.Section{
+			{
+				Title:       "Deneyim",
+				SectionType: cv.SectionExperience,
+				Entries:     nil,
+			},
+		},
+	}
+
+	report := Run(c)
+	for _, f := range report.Findings {
+		switch f.Code {
+		case "missing_full_name":
+			if !strings.Contains(f.Message, "Ad soyad boş") {
+				t.Errorf("expected Turkish missing_full_name message, got: %s", f.Message)
+			}
+		case "invalid_email_format":
+			if !strings.Contains(f.Message, "E-posta formatı geçersiz") {
+				t.Errorf("expected Turkish invalid_email_format message, got: %s", f.Message)
+			}
+		case "missing_phone":
+			if !strings.Contains(f.Message, "Telefon numarası boş") {
+				t.Errorf("expected Turkish missing_phone message, got: %s", f.Message)
+			}
+		case "missing_summary":
+			if !strings.Contains(f.Message, "Özet bölümü boş") {
+				t.Errorf("expected Turkish missing_summary message, got: %s", f.Message)
+			}
+		case "empty_section":
+			if !strings.Contains(f.Message, "bölümü eklenmiş ama içi boş") {
+				t.Errorf("expected Turkish empty_section message, got: %s", f.Message)
+			}
+		}
+	}
+}
+
 func hasCode(findings []Finding, code string) bool {
 	for _, f := range findings {
 		if f.Code == code {

@@ -44,6 +44,8 @@ Compare them and identify:
 2. Which important skills/qualifications from the job description are missing or not evidenced in the CV.
 3. For up to 3 of the most impactful gaps, suggest a specific, honest rewording of an existing CV bullet (referencing its entryId) that would better surface a genuinely transferable skill the candidate likely already has, based on what's in the CV. Never invent an experience the candidate does not have.
 
+IMPORTANT: Write all suggestions and skills in the same language as the candidate's CV (e.g. Turkish if the CV content/language is Turkish, English if English).
+
 Return ONLY a JSON object with this exact shape, no markdown formatting, no explanations:
 {
   "matchScore": <integer 0-100, overall fit>,

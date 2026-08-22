@@ -336,6 +336,7 @@ export const WailsBridge = {
     }
     // Browser mock fallback
     await new Promise((r) => setTimeout(r, 600));
+    const isEn = cv.language === "en";
     return {
       score: 92,
       formatScore: 92,
@@ -345,7 +346,9 @@ export const WailsBridge = {
           code: "missing_summary",
           severity: "low",
           field: "summary",
-          message: "Özet bölümü boş veya çok kısa. Doldurulması önerilir.",
+          message: isEn
+            ? "Summary section is empty. Filling it is strongly recommended."
+            : "Özet bölümü boş veya çok kısa. Doldurulması önerilir.",
         },
       ],
       convertValues: () => ({}) as any,
@@ -358,6 +361,7 @@ export const WailsBridge = {
     }
     // Browser mock fallback
     await new Promise((r) => setTimeout(r, 1200));
+    const isEn = cv.language === "en";
     return {
       score: 84,
       formatScore: 92,
@@ -368,19 +372,27 @@ export const WailsBridge = {
           code: "missing_summary",
           severity: "low",
           field: "summary",
-          message: "Özet bölümü boş veya çok kısa. Doldurulması önerilir.",
+          message: isEn
+            ? "Summary section is empty. Filling it is strongly recommended."
+            : "Özet bölümü boş veya çok kısa. Doldurulması önerilir.",
         },
       ],
       matchedSkills: ["Go (Golang)", "PostgreSQL", "Docker", "Kubernetes", "Redis", "gRPC", "Clean Architecture"],
-      missingSkills: ["Terraform / AWS CDK", "Kafka veya RabbitMQ Event Broker"],
+      missingSkills: isEn
+        ? ["Terraform / AWS CDK", "Kafka or RabbitMQ Event Broker"]
+        : ["Terraform / AWS CDK", "Kafka veya RabbitMQ Event Broker"],
       suggestions: [
         {
           entryId: "ent-1",
-          suggestion: "Mikroservis mimarisindeki deneyiminde Event-Driven iletişim ve kuyruk yapıları (varsa) üzerine bir cümle ekleyebilirsin.",
+          suggestion: isEn
+            ? "You can add a bullet point highlighting event-driven architecture and asynchronous messaging in your microservices experience."
+            : "Mikroservis mimarisindeki deneyiminde Event-Driven iletişim ve kuyruk yapıları (varsa) üzerine bir cümle ekleyebilirsin.",
         },
         {
           entryId: "ent-2",
-          suggestion: "Ödeme altyapısındaki asenkron kuyruk işlemlerini ve veri tutarlılığı yöntemlerini açıkça belirt.",
+          suggestion: isEn
+            ? "Clearly state the transactional consistency and webhook handling mechanisms in the payment gateway services."
+            : "Ödeme altyapısındaki asenkron kuyruk işlemlerini ve veri tutarlılığı yöntemlerini açıkça belirt.",
         },
       ],
       convertValues: () => ({}) as any,

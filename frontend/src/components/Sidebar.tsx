@@ -4,7 +4,7 @@ import { pdf } from "@react-pdf/renderer";
 import { useCVStore } from "../store/useCVStore";
 import { ATSClassicTemplate } from "../templates/ATSClassicTemplate";
 import { WailsBridge } from "../lib/wailsBridge";
-import { useTranslation } from "../i18n";
+import { useTranslation, getSectionDisplayTitle } from "../i18n";
 import { toast } from "sonner";
 
 interface SidebarProps {
@@ -12,7 +12,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const activePanel = useCVStore((state) => state.activePanel);
   const setActivePanel = useCVStore((state) => state.setActivePanel);
   const deleteSection = useCVStore((state) => state.deleteSection);
@@ -129,7 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
                         isActive ? "bg-[var(--accent)]" : "bg-[var(--ink-faint)]"
                       }`}
                     />
-                    <span className="truncate">{sec.title}</span>
+                    <span className="truncate">{getSectionDisplayTitle(sec, lang)}</span>
                   </div>
                   <button
                     type="button"

@@ -1,9 +1,77 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { CVData, CVEntry, CVSection } from "../../types/cv";
-import { useTranslation } from "../../i18n";
+import { useTranslation, getSectionDisplayTitle } from "../../i18n";
 
 interface ResumeSheetProps {
   cv: CVData;
+}
+
+function cleanUrlDisplay(url: string): string {
+  if (!url) return "";
+  return url
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/+$/, "");
+}
+
+function getHref(value: string, type: "email" | "phone" | "url"): string {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  if (type === "email") {
+    return trimmed.startsWith("mailto:") ? trimmed : `mailto:${trimmed}`;
+  }
+  if (type === "phone") {
+    return `tel:${trimmed.replace(/\s+/g, "")}`;
+  }
+  if (type === "url") {
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
+function parseBullets(text: string): string[] {
+  if (!text) return [];
+  const lines = text.split("\n");
+  const bullets: string[] = [];
+  let currentBullet = "";
+
+  const isBulletStart = (line: string) => /^[-*•]\s*/.test(line.trim());
+  const hasAnyBullets = lines.some((l) => isBulletStart(l));
+
+  if (!hasAnyBullets) {
+    return lines.map((l) => l.trim()).filter(Boolean);
+  }
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) {
+      if (currentBullet) {
+        bullets.push(currentBullet);
+        currentBullet = "";
+      }
+      continue;
+    }
+
+    if (isBulletStart(trimmed)) {
+      if (currentBullet) {
+        bullets.push(currentBullet);
+      }
+      currentBullet = trimmed.replace(/^[-*•]\s*/, "");
+    } else {
+      if (currentBullet) {
+        currentBullet += " " + trimmed;
+      } else {
+        currentBullet = trimmed;
+      }
+    }
+  }
+
+  if (currentBullet) {
+    bullets.push(currentBullet);
+  }
+
+  return bullets;
 }
 
 function formatDateRange(entry: CVEntry, presentLabel: string): string {
@@ -14,12 +82,7 @@ function formatDateRange(entry: CVEntry, presentLabel: string): string {
 }
 
 const BulletList = ({ text }: { text: string }) => {
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => l.replace(/^[-*•]\s*/, ""));
-
+  const lines = parseBullets(text);
   if (lines.length === 0) return null;
 
   return (
@@ -52,6 +115,43 @@ const StandardEntry = ({ entry }: { entry: CVEntry }) => {
   );
 };
 
+const SkillsList = ({ entries }: { entries: CVEntry[] }) => {
+  const hasCategories = entries.some(
+    (e) => (e.description || "").trim().length > 0 || (e.title || "").includes(":")
+  );
+
+  if (hasCategories) {
+    return (
+      <div className="rs-skills-categories space-y-1.5 pt-0.5">
+        {entries.map((e) => {
+          const category = e.title ? `${e.title}: ` : "";
+          const skillsText = e.description || "";
+          return (
+            <div key={e.id} className="rs-skill-category-row text-[11px] leading-snug">
+              {e.title && <span className="font-bold text-[#0f172a]">{category}</span>}
+              <span className="text-[#334155]">{skillsText || e.title}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rs-skills-wrap">
+      {entries.map((e) => {
+        const level = (e.meta?.level as string | undefined) ?? "";
+        return (
+          <span key={e.id} className="rs-skill-chip">
+            {e.title}
+            {level ? ` (${level})` : ""}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 const ChipList = ({ entries }: { entries: CVEntry[] }) => {
   return (
     <div className="rs-skills-wrap">
@@ -68,24 +168,36 @@ const ChipList = ({ entries }: { entries: CVEntry[] }) => {
   );
 };
 
-const Section = ({ section }: { section: CVSection }) => {
+const Section = ({ section, lang }: { section: CVSection; lang: "tr" | "en" }) => {
   const entries = section.entries || [];
   const sortedEntries = [...entries].sort((a, b) =>
     (a.orderKey || "").localeCompare(b.orderKey || "")
   );
 
-  const isChipStyle = section.sectionType === "skills" || section.sectionType === "languages";
+  if (section.sectionType === "skills") {
+    return (
+      <div className="rs-section" data-key={section.id}>
+        <h2 className="rs-section-title">{getSectionDisplayTitle(section, lang)}</h2>
+        <SkillsList entries={sortedEntries} />
+      </div>
+    );
+  }
+
+  if (section.sectionType === "languages") {
+    return (
+      <div className="rs-section" data-key={section.id}>
+        <h2 className="rs-section-title">{getSectionDisplayTitle(section, lang)}</h2>
+        <ChipList entries={sortedEntries} />
+      </div>
+    );
+  }
 
   return (
     <div className="rs-section" data-key={section.id}>
-      <h2 className="rs-section-title">{section.title}</h2>
-      {isChipStyle ? (
-        <ChipList entries={sortedEntries} />
-      ) : (
-        sortedEntries.map((entry) => (
-          <StandardEntry key={entry.id} entry={entry} />
-        ))
-      )}
+      <h2 className="rs-section-title">{getSectionDisplayTitle(section, lang)}</h2>
+      {sortedEntries.map((entry) => (
+        <StandardEntry key={entry.id} entry={entry} />
+      ))}
     </div>
   );
 };
@@ -133,14 +245,25 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv }) => {
     (a.orderKey || "").localeCompare(b.orderKey || "")
   );
 
-  const contactParts = [
-    cv.email,
-    cv.phone,
-    cv.location,
-    cv.linkedin,
-    cv.github,
-    cv.website,
-  ].filter(Boolean);
+  const contactItems: { text: string; href?: string }[] = [];
+  if (cv.email) {
+    contactItems.push({ text: cv.email, href: getHref(cv.email, "email") });
+  }
+  if (cv.phone) {
+    contactItems.push({ text: cv.phone, href: getHref(cv.phone, "phone") });
+  }
+  if (cv.location) {
+    contactItems.push({ text: cv.location });
+  }
+  if (cv.linkedin) {
+    contactItems.push({ text: cleanUrlDisplay(cv.linkedin), href: getHref(cv.linkedin, "url") });
+  }
+  if (cv.github) {
+    contactItems.push({ text: cleanUrlDisplay(cv.github), href: getHref(cv.github, "url") });
+  }
+  if (cv.website) {
+    contactItems.push({ text: cleanUrlDisplay(cv.website), href: getHref(cv.website, "url") });
+  }
 
   return (
     <div className="resume-sheet-wrapper" ref={containerRef}>
@@ -157,11 +280,23 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv }) => {
             <h1 className="rs-name">{cv.fullName || t("preview.defaultName")}</h1>
             {cv.jobTitle && <p className="rs-job-title">{cv.jobTitle}</p>}
             <div className="rs-contact-row">
-              {contactParts.map((part, i) => (
-                <span key={i} className="rs-contact-item">
-                  {part}
-                </span>
-              ))}
+              {contactItems.map((item, i) =>
+                item.href ? (
+                  <a
+                    key={i}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rs-contact-item hover:text-[#0284c7] hover:underline transition-colors"
+                  >
+                    {item.text}
+                  </a>
+                ) : (
+                  <span key={i} className="rs-contact-item">
+                    {item.text}
+                  </span>
+                )
+              )}
             </div>
           </div>
 
@@ -182,7 +317,11 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv }) => {
 
         {/* Dynamic Sections */}
         {sortedSections.map((section) => (
-          <Section key={section.id} section={section} />
+          <Section
+            key={section.id}
+            section={section}
+            lang={(cv.language || "tr") as "tr" | "en"}
+          />
         ))}
       </div>
     </div>
