@@ -3,12 +3,13 @@ import { useCVStore } from "../../store/useCVStore";
 import { ResumeSheet } from "./ResumeSheet";
 import { ATSCheckerModal } from "./ATSCheckerModal";
 import { useTranslation } from "../../i18n";
-import { Sparkles } from "lucide-react";
+import { Sparkles, FileText } from "lucide-react";
 
 export const PreviewPane: React.FC = () => {
   const cv = useCVStore((state) => state.cv);
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [isATSModalOpen, setIsATSModalOpen] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
 
   if (!cv) {
     return (
@@ -29,9 +30,22 @@ export const PreviewPane: React.FC = () => {
       >
         {/* Preview Toolbar */}
         <div className="w-full flex items-center justify-between mb-4">
-          <span className="text-[11px] font-bold tracking-[1px] uppercase text-[var(--ink-faint)]">
-            {t("preview.livePreview")}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold tracking-[1px] uppercase text-[var(--ink-faint)]">
+              {t("preview.livePreview")}
+            </span>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--panel-chip)] text-[var(--ink-secondary)] border border-[var(--border)] shadow-2xs">
+              <FileText className="w-3 h-3 text-[var(--ink-faint)]" />
+              <span>
+                {totalPages > 1
+                  ? t("preview.pageCount", { count: totalPages, s: "s" })
+                  : lang === "tr"
+                  ? "1 Sayfa"
+                  : "1 Page"}
+              </span>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => setIsATSModalOpen(true)}
@@ -45,7 +59,7 @@ export const PreviewPane: React.FC = () => {
 
         {/* A4 Paper Document Preview */}
         <div className="w-full flex justify-center">
-          <ResumeSheet cv={cv} />
+          <ResumeSheet cv={cv} onPageCountChange={setTotalPages} />
         </div>
       </aside>
 
@@ -57,4 +71,3 @@ export const PreviewPane: React.FC = () => {
     </>
   );
 };
-

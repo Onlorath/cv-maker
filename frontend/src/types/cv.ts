@@ -50,4 +50,5 @@ export interface CVData {
 
 export interface CVTemplateProps {
   data: CVData;
+  compact?: boolean;
 }

@@ -3,6 +3,7 @@ import type { CVData, CVSection, CVEntry, SectionType } from "../types/cv";
 import { WailsBridge } from "../lib/wailsBridge";
 import { translate } from "../i18n";
 import { toast } from "sonner";
+import { debounce } from "../lib/cvUtils";
 
 export type TranslationState = "idle" | "translating" | "success" | "error";
 
@@ -43,6 +44,8 @@ interface CVStore {
   setActivePanel: (panel: string) => void;
   setActiveSection: (id: string | null) => void;
   setActiveEntry: (id: string | null) => void;
+  isCompactMode: boolean;
+  setIsCompactMode: (compact: boolean) => void;
   setPreviewZoom: (zoom: number | ((prev: number) => number)) => void;
   toggleLanguage: () => void;
 }
@@ -75,6 +78,24 @@ const applyThemeToDOM = (theme: "light" | "dark") => {
   }
 };
 
+const debouncedUpdateCV = debounce((cv: CVData, lang: "tr"|"en") => {
+  WailsBridge.updateCV(cv).catch((err) => {
+    toast.error(translate("store.titleUpdateError", lang), { description: String(err) });
+  });
+}, 500);
+
+const debouncedUpdateSection = debounce((section: CVSection, lang: "tr"|"en") => {
+  WailsBridge.updateSection(section).catch((err) => {
+    toast.error(translate("store.sectionTitleUpdateError", lang), { description: String(err) });
+  });
+}, 500);
+
+const debouncedUpdateEntry = debounce((entry: CVEntry, lang: "tr"|"en") => {
+  WailsBridge.updateEntry(entry).catch((err) => {
+    toast.error(translate("store.entryUpdateError", lang), { description: String(err) });
+  });
+}, 500);
+
 export const useCVStore = create<CVStore>((set, get) => ({
   cv: null,
   isLoading: true,
@@ -83,6 +104,7 @@ export const useCVStore = create<CVStore>((set, get) => ({
   activePanel: "personal",
   previewZoom: 1.0,
   previewLanguage: "tr",
+  isCompactMode: false,
   translationState: {},
   translationNote: null,
   theme: getInitialTheme(),
@@ -128,9 +150,7 @@ export const useCVStore = create<CVStore>((set, get) => ({
     const lang = (cv.language || "tr") as "tr" | "en";
     const updatedCV: CVData = { ...cv, ...fields };
     set({ cv: updatedCV });
-    WailsBridge.updateCV(updatedCV).catch((err) => {
-      toast.error(translate("store.titleUpdateError", lang), { description: String(err) });
-    });
+    debouncedUpdateCV(updatedCV, lang);
   },
 
   addSection: async (type, title) => {
@@ -175,9 +195,7 @@ export const useCVStore = create<CVStore>((set, get) => ({
           }
         : null,
     }));
-    WailsBridge.updateSection(updated).catch((err) => {
-      toast.error(translate("store.sectionTitleUpdateError", lang), { description: String(err) });
-    });
+    debouncedUpdateSection(updated, lang);
   },
 
   deleteSection: async (sectionId) => {
@@ -283,9 +301,7 @@ export const useCVStore = create<CVStore>((set, get) => ({
         : null,
     }));
 
-    WailsBridge.updateEntry(updatedEntry).catch((err) => {
-      toast.error(translate("store.entryUpdateError", lang), { description: String(err) });
-    });
+    debouncedUpdateEntry(updatedEntry, lang);
   },
 
   deleteEntry: async (sectionId, entryId) => {
@@ -381,6 +397,7 @@ export const useCVStore = create<CVStore>((set, get) => ({
   setActivePanel: (panel) => set({ activePanel: panel }),
   setActiveSection: (id) => set({ activeSectionId: id }),
   setActiveEntry: (id) => set({ activeEntryId: id }),
+  setIsCompactMode: (compact) => set({ isCompactMode: compact }),
   setPreviewZoom: (zoom) =>
     set((state) => ({
       previewZoom: typeof zoom === "function" ? zoom(state.previewZoom) : zoom,

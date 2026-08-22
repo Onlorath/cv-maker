@@ -23,7 +23,7 @@ func goodCV() *cv.CV {
 					{
 						Title:       "Full Stack Geliştirici",
 						Subtitle:    "Kartelam",
-						DateStart:   strPtr("2023-05"),
+						DateStart:   strPtr("May 2023"),
 						IsCurrent:   true,
 						Description: "- Mikroservis mimarisini yeniden tasarladı\n- Gecikmeyi %30 azalttı",
 					},
@@ -96,7 +96,7 @@ func TestEmptySection(t *testing.T) {
 
 func TestInconsistentDateFormat(t *testing.T) {
 	c := goodCV()
-	c.Sections[0].Entries[0].DateStart = strPtr("Mayıs 2023")
+	c.Sections[0].Entries[0].DateStart = strPtr("2023-05")
 	report := Run(c)
 	if !hasCode(report.Findings, "inconsistent_date_format") {
 		t.Errorf("inconsistent_date_format bulgusu bekleniyordu, alınan: %+v", report.Findings)

@@ -10,7 +10,7 @@ import (
 
 var (
 	emailRe = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
-	dateRe  = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
+	dateRe  = regexp.MustCompile(`(?i)^\p{L}+ \d{4}$`)
 	// Türkçe telefon için katı bir format şartı koymuyoruz (uluslararası +90,
 	// yerel 0 ile başlayan, boşluklu/boşluksuz hepsi geçerli olabilir) —
 	// sadece "en az 7 rakam var mı" gibi gevşek bir varlık kontrolü yapıyoruz.
@@ -150,7 +150,7 @@ func checkSectionsNotEmpty(c *cv.CV) []Finding {
 }
 
 // checkDateConsistency: work-history tipi section'larda (experience, education,
-// certifications, projects) dateStart alanı doluysa YYYY-MM formatına uymalı.
+// certifications, projects) dateStart alanı doluysa Ay Yıl formatına uymalı.
 // skills/languages/custom section'larda tarih beklenmediği için kontrol edilmiyor.
 func checkDateConsistency(c *cv.CV) []Finding {
 	dateRequiredTypes := map[cv.SectionType]bool{
@@ -171,9 +171,9 @@ func checkDateConsistency(c *cv.CV) []Finding {
 				continue // tarih girilmemiş olabilir, bu ayrı ve daha düşük öncelikli bir konu
 			}
 			if !dateRe.MatchString(strings.TrimSpace(*e.DateStart)) {
-				msg := fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: YYYY-MM)", *e.DateStart)
+				msg := fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: Ay Yıl, örn: May 2026)", *e.DateStart)
 				if isEn {
-					msg = fmt.Sprintf("Unexpected date format: %q (expected: YYYY-MM)", *e.DateStart)
+					msg = fmt.Sprintf("Unexpected date format: %q (expected: Month YYYY, e.g. May 2026)", *e.DateStart)
 				}
 				findings = append(findings, Finding{
 					Code:     "inconsistent_date_format",
@@ -184,9 +184,9 @@ func checkDateConsistency(c *cv.CV) []Finding {
 			}
 			if e.DateEnd != nil && strings.TrimSpace(*e.DateEnd) != "" && !e.IsCurrent {
 				if !dateRe.MatchString(strings.TrimSpace(*e.DateEnd)) {
-					msg := fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: YYYY-MM)", *e.DateEnd)
+					msg := fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: Ay Yıl, örn: May 2026)", *e.DateEnd)
 					if isEn {
-						msg = fmt.Sprintf("Unexpected date format: %q (expected: YYYY-MM)", *e.DateEnd)
+						msg = fmt.Sprintf("Unexpected date format: %q (expected: Month YYYY, e.g. May 2026)", *e.DateEnd)
 					}
 					findings = append(findings, Finding{
 						Code:     "inconsistent_date_format",

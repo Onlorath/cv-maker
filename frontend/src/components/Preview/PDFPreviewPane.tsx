@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import type { CVData } from "../../types/cv";
 
 export const PDFPreviewPane: React.FC = () => {
-  const { cv, previewZoom, setPreviewZoom, previewLanguage } = useCVStore();
+  const { cv, previewZoom, setPreviewZoom, previewLanguage, isCompactMode } = useCVStore();
   const [debouncedCV, setDebouncedCV] = useState<CVData | null>(cv);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -29,8 +29,8 @@ export const PDFPreviewPane: React.FC = () => {
   }, [debouncedCV, previewLanguage]);
 
   const pdfDocument = useMemo(
-    () => (viewData ? <ATSClassicTemplate data={viewData} /> : null),
-    [viewData]
+    () => (viewData ? <ATSClassicTemplate data={viewData} compact={isCompactMode} /> : null),
+    [viewData, isCompactMode]
   );
 
   const handleDownload = async () => {

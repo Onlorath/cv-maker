@@ -2,6 +2,7 @@ package atsmatch
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -29,7 +30,7 @@ func isRateLimitError(err error) bool {
 		strings.Contains(errStr, "rate limit")
 }
 
-// buildPrompt, JD ve CV JSON'ını Gemini'ye zorunlu şema ile birlikte gönderir.
+// buildPrompt, JD ve CV JSON'ını Gemini'ye gönderir.
 func buildPrompt(req MatchRequest) string {
 	return fmt.Sprintf(`You are an expert technical recruiter comparing a candidate's CV against a job description.
 
@@ -44,15 +45,47 @@ Compare them and identify:
 2. Which important skills/qualifications from the job description are missing or not evidenced in the CV.
 3. For up to 3 of the most impactful gaps, suggest a specific, honest rewording of an existing CV bullet (referencing its entryId) that would better surface a genuinely transferable skill the candidate likely already has, based on what's in the CV. Never invent an experience the candidate does not have.
 
-IMPORTANT: Write all suggestions and skills in the same language as the candidate's CV (e.g. Turkish if the CV content/language is Turkish, English if English).
+IMPORTANT: Write all suggestions and skills in the same language as the candidate's CV (e.g. Turkish if the CV content/language is Turkish, English if English).`, req.JobDescription, req.CVJSON)
+}
 
-Return ONLY a JSON object with this exact shape, no markdown formatting, no explanations:
-{
-  "matchScore": <integer 0-100, overall fit>,
-  "matchedSkills": [<strings>],
-  "missingSkills": [<strings>],
-  "suggestions": [{"entryId": "<string>", "suggestion": "<string>"}]
-}`, req.JobDescription, req.CVJSON)
+func buildSchema() *genai.Schema {
+	return &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"matchScore": {
+				Type:        genai.TypeInteger,
+				Description: "0-100 overall fit score",
+			},
+			"matchedSkills": {
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type: genai.TypeString,
+				},
+			},
+			"missingSkills": {
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type: genai.TypeString,
+				},
+			},
+			"suggestions": {
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"entryId": {
+							Type: genai.TypeString,
+						},
+						"suggestion": {
+							Type: genai.TypeString,
+						},
+					},
+					Required: []string{"entryId", "suggestion"},
+				},
+			},
+		},
+		Required: []string{"matchScore", "matchedSkills", "missingSkills", "suggestions"},
+	}
 }
 
 // geminiMatcher, Matcher'ın Gemini implementasyonu.
@@ -96,6 +129,8 @@ func (g *geminiMatcher) Match(ctx context.Context, req MatchRequest) (MatchRespo
 
 		model := client.GenerativeModel(modelName)
 		model.SetTemperature(0.2)
+		model.ResponseMIMEType = "application/json"
+		model.ResponseSchema = buildSchema()
 
 		resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 		if err != nil {
@@ -126,15 +161,25 @@ func (g *geminiMatcher) Match(ctx context.Context, req MatchRequest) (MatchRespo
 		}
 
 		rawOutput := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
-		parsed, parseErr := ParseResponse(rawOutput)
-		if parseErr != nil {
-			slog.WarnContext(ctx, "failed to parse gemini response in atsmatch",
+		var parsed MatchResponse
+		
+		// Artık model doğrudan JSON döneceği için (Structured Outputs)
+		// ParseResponse içindeki markdown temizlemelerine gerek yok.
+		if parseErr := json.Unmarshal([]byte(rawOutput), &parsed); parseErr != nil {
+			slog.WarnContext(ctx, "failed to unmarshal gemini structured response in atsmatch",
 				"model", modelName,
 				"error", parseErr,
 				"rawOutput", rawOutput,
 			)
 			lastErr = parseErr
 			continue
+		}
+		
+		// Güvenlik: 0-100 sınırı
+		if parsed.MatchScore < 0 {
+			parsed.MatchScore = 0
+		} else if parsed.MatchScore > 100 {
+			parsed.MatchScore = 100
 		}
 
 		slog.InfoContext(ctx, "gemini ats matching succeeded",

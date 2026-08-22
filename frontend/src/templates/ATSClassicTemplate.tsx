@@ -2,66 +2,78 @@ import { Document, Page, View, Text, Image, Link, StyleSheet } from "@react-pdf/
 import { registerCVFonts } from "./fonts";
 import type { CVEntry, CVSection, CVTemplateProps } from "../types/cv";
 import { getSectionDisplayTitle } from "../i18n";
+import { cleanUrlDisplay, getHref, parseBullets, formatDateRange } from "../lib/cvUtils";
 
 registerCVFonts();
 
-const styles = StyleSheet.create({
+// -----------------------------------------------------------------------
+// ATS NOTU: react-pdf, JSX'te tanımlanan component sırasını PDF content
+// stream'ine birebir aynı sırayla yazar. Yani bir ATS parser'ın metni okuma
+// sırası = bu dosyadaki JSX sırasıdır. Flex layout kullanıldığında görsel sıra
+// ile JSX sırası örtüşür. Bu sebeple foto için absolute positioning kullanılmaz;
+// header'da text bloğu önce, foto flex satırının son elemanı olarak tanımlanır.
+// Bu sayede hem doğru görsel yerleşim hem de doğru ATS okuma sırası sağlanır.
+// -----------------------------------------------------------------------
+
+const createTemplateStyles = (compact: boolean) => StyleSheet.create({
   page: {
     fontFamily: "Roboto",
-    fontSize: 9.5,
+    fontSize: compact ? 8.8 : 9.5,
     color: "#1e293b",
-    paddingTop: 32,
-    paddingBottom: 32,
-    paddingHorizontal: 36,
+    paddingTop: compact ? 24 : 32,
+    paddingBottom: compact ? 24 : 32,
+    paddingHorizontal: compact ? 30 : 36,
     backgroundColor: "#ffffff",
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 14,
+    marginBottom: compact ? 10 : 14,
     borderBottomWidth: 1.5,
     borderBottomColor: "#0f172a",
-    paddingBottom: 12,
+    paddingBottom: compact ? 8 : 12,
   },
   headerText: {
     flexGrow: 1,
     paddingRight: 12,
   },
   name: {
-    fontSize: 22,
+    fontSize: compact ? 20 : 22,
     fontFamily: "Roboto",
     fontWeight: "bold",
     color: "#0f172a",
     letterSpacing: -0.5,
-    marginBottom: 2,
+    marginBottom: compact ? 1 : 2,
   },
   jobTitle: {
-    fontSize: 12,
+    fontSize: compact ? 10.5 : 11.5,
     color: "#475569",
-    fontWeight: "medium",
-    marginBottom: 6,
+    fontWeight: 500,
+    marginBottom: compact ? 4 : 6,
   },
   contactRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    fontSize: 8.5,
+    fontSize: compact ? 8 : 8.5,
     color: "#64748b",
   },
   contactItem: {
-    marginRight: 12,
-    marginBottom: 2,
+    marginRight: compact ? 10 : 12,
+    marginBottom: compact ? 1.5 : 2,
+    color: "#64748b",
+    textDecoration: "none",
   },
   photo: {
-    width: 60,
-    height: 60,
+    width: compact ? 52 : 60,
+    height: compact ? 52 : 60,
     borderRadius: 6,
     objectFit: "cover",
     borderWidth: 1,
     borderColor: "#cbd5e1",
   },
   sectionTitle: {
-    fontSize: 10.5,
+    fontSize: compact ? 10 : 11,
     fontFamily: "Roboto",
     fontWeight: "bold",
     textTransform: "uppercase",
@@ -69,17 +81,17 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
-    paddingBottom: 3,
-    marginTop: 10,
-    marginBottom: 6,
+    paddingBottom: compact ? 2 : 3,
+    marginTop: compact ? 7 : 10,
+    marginBottom: compact ? 4 : 6,
   },
   summaryText: {
-    fontSize: 9,
-    lineHeight: 1.45,
+    fontSize: compact ? 8.5 : 9,
+    lineHeight: compact ? 1.35 : 1.45,
     color: "#334155",
   },
   entryBlock: {
-    marginBottom: 7,
+    marginBottom: compact ? 4 : 7,
   },
   entryHeaderRow: {
     flexDirection: "row",
@@ -87,136 +99,77 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
   },
   entryTitle: {
-    fontSize: 10,
+    fontSize: compact ? 9.5 : 10,
     fontFamily: "Roboto",
     fontWeight: "bold",
     color: "#0f172a",
   },
   entrySubtitle: {
-    fontSize: 9.5,
+    fontSize: compact ? 9 : 9.5,
     color: "#334155",
-    fontWeight: "medium",
+    fontWeight: 500,
   },
   entryDates: {
-    fontSize: 8.5,
+    fontSize: compact ? 8 : 8.5,
     color: "#64748b",
   },
   entryLocation: {
-    fontSize: 8.5,
+    fontSize: compact ? 8 : 8.5,
     color: "#64748b",
   },
   bulletRow: {
     flexDirection: "row",
-    marginTop: 2.5,
+    marginTop: compact ? 1.5 : 2.5,
   },
   bulletDot: {
-    width: 8,
-    fontSize: 8.5,
+    width: compact ? 7 : 8,
+    fontSize: compact ? 8 : 8.5,
     color: "#64748b",
   },
   bulletText: {
     flex: 1,
-    fontSize: 9,
-    lineHeight: 1.35,
+    fontSize: compact ? 8.5 : 9,
+    lineHeight: compact ? 1.25 : 1.35,
     color: "#334155",
   },
   skillsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 4,
-    marginTop: 2,
+    marginTop: compact ? 1.5 : 2,
   },
   skillChip: {
-    fontSize: 8.5,
+    fontSize: compact ? 8 : 8.5,
     color: "#1e293b",
     backgroundColor: "#f1f5f9",
-    paddingVertical: 2,
-    paddingHorizontal: 6,
+    paddingVertical: compact ? 1.5 : 2,
+    paddingHorizontal: compact ? 5 : 6,
     borderRadius: 3,
     borderWidth: 0.5,
     borderColor: "#e2e8f0",
-    marginRight: 4,
-    marginBottom: 3,
+    marginRight: compact ? 3 : 4,
+    marginBottom: compact ? 2 : 3,
+  },
+  skillCatRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: compact ? 1.5 : 2.5,
+  },
+  skillCatTitle: {
+    fontFamily: "Roboto",
+    fontWeight: 700,
+    fontSize: compact ? 8.8 : 9.5,
+    color: "#0f172a",
+  },
+  skillCatText: {
+    fontFamily: "Roboto",
+    fontSize: compact ? 8.8 : 9.5,
+    color: "#334155",
   },
 });
 
-function cleanUrlDisplay(url: string): string {
-  if (!url) return "";
-  return url
-    .trim()
-    .replace(/^https?:\/\//i, "")
-    .replace(/^www\./i, "")
-    .replace(/\/+$/, "");
-}
+type TemplateStyles = ReturnType<typeof createTemplateStyles>;
 
-function getHref(value: string, type: "email" | "phone" | "url"): string {
-  const trimmed = (value || "").trim();
-  if (!trimmed) return "";
-  if (type === "email") {
-    return trimmed.startsWith("mailto:") ? trimmed : `mailto:${trimmed}`;
-  }
-  if (type === "phone") {
-    return `tel:${trimmed.replace(/\s+/g, "")}`;
-  }
-  if (type === "url") {
-    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  }
-  return trimmed;
-}
-
-function parseBullets(text: string): string[] {
-  if (!text) return [];
-  const lines = text.split("\n");
-  const bullets: string[] = [];
-  let currentBullet = "";
-
-  const isBulletStart = (line: string) => /^[-*•]\s*/.test(line.trim());
-  const hasAnyBullets = lines.some((l) => isBulletStart(l));
-
-  if (!hasAnyBullets) {
-    return lines.map((l) => l.trim()).filter(Boolean);
-  }
-
-  for (const rawLine of lines) {
-    const trimmed = rawLine.trim();
-    if (!trimmed) {
-      if (currentBullet) {
-        bullets.push(currentBullet);
-        currentBullet = "";
-      }
-      continue;
-    }
-
-    if (isBulletStart(trimmed)) {
-      if (currentBullet) {
-        bullets.push(currentBullet);
-      }
-      currentBullet = trimmed.replace(/^[-*•]\s*/, "");
-    } else {
-      if (currentBullet) {
-        currentBullet += " " + trimmed;
-      } else {
-        currentBullet = trimmed;
-      }
-    }
-  }
-
-  if (currentBullet) {
-    bullets.push(currentBullet);
-  }
-
-  return bullets;
-}
-
-function formatDateRange(entry: CVEntry, lang: "tr" | "en"): string {
-  const present = lang === "tr" ? "Devam Ediyor" : "Present";
-  const start = entry.dateStart ?? "";
-  const end = entry.isCurrent ? present : entry.dateEnd ?? "";
-  if (!start && !end) return "";
-  return `${start} — ${end}`;
-}
-
-function BulletList({ text }: { text: string }) {
+function BulletList({ text, styles }: { text: string; styles: TemplateStyles }) {
   const lines = parseBullets(text);
   if (lines.length === 0) return null;
 
@@ -232,8 +185,17 @@ function BulletList({ text }: { text: string }) {
   );
 }
 
-function StandardEntry({ entry, lang }: { entry: CVEntry; lang: "tr" | "en" }) {
-  const dateRange = formatDateRange(entry, lang);
+function StandardEntry({
+  entry,
+  lang,
+  styles,
+}: {
+  entry: CVEntry;
+  lang: "tr" | "en";
+  styles: TemplateStyles;
+}) {
+  const presentLabel = lang === "tr" ? "Devam Ediyor" : "Present";
+  const dateRange = formatDateRange(entry, presentLabel);
   return (
     <View style={styles.entryBlock}>
       <View style={styles.entryHeaderRow}>
@@ -241,15 +203,19 @@ function StandardEntry({ entry, lang }: { entry: CVEntry; lang: "tr" | "en" }) {
         {dateRange ? <Text style={styles.entryDates}>{dateRange}</Text> : null}
       </View>
       <View style={styles.entryHeaderRow}>
-        {entry.subtitle ? <Text style={styles.entrySubtitle}>{entry.subtitle}</Text> : <Text style={styles.entrySubtitle}> </Text>}
+        {entry.subtitle ? (
+          <Text style={styles.entrySubtitle}>{entry.subtitle}</Text>
+        ) : (
+          <Text style={styles.entrySubtitle}> </Text>
+        )}
         {entry.location ? <Text style={styles.entryLocation}>{entry.location}</Text> : null}
       </View>
-      {entry.description ? <BulletList text={entry.description} /> : null}
+      {entry.description ? <BulletList text={entry.description} styles={styles} /> : null}
     </View>
   );
 }
 
-function SkillsList({ entries }: { entries: CVEntry[] }) {
+function SkillsList({ entries, styles }: { entries: CVEntry[]; styles: TemplateStyles }) {
   const hasCategories = entries.some(
     (e) => (e.description || "").trim().length > 0 || (e.title || "").includes(":")
   );
@@ -258,13 +224,13 @@ function SkillsList({ entries }: { entries: CVEntry[] }) {
     return (
       <View style={{ marginTop: 2, marginBottom: 4 }}>
         {entries.map((e) => (
-          <View key={e.id} style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 2.5 }}>
+          <View key={e.id} style={styles.skillCatRow}>
             {e.title ? (
-              <Text style={{ fontFamily: "Roboto", fontWeight: 700, fontSize: 9.5, color: "#0f172a" }}>
+              <Text style={styles.skillCatTitle}>
                 {e.title}:{" "}
               </Text>
             ) : null}
-            <Text style={{ fontFamily: "Roboto", fontSize: 9.5, color: "#334155" }}>
+            <Text style={styles.skillCatText}>
               {e.description || e.title}
             </Text>
           </View>
@@ -288,23 +254,17 @@ function SkillsList({ entries }: { entries: CVEntry[] }) {
   );
 }
 
-function ChipList({ entries }: { entries: CVEntry[] }) {
-  return (
-    <View style={styles.skillsWrap}>
-      {entries.map((e) => {
-        const level = (e.meta?.level as string | undefined) ?? "";
-        return (
-          <Text key={e.id} style={styles.skillChip}>
-            {e.title}
-            {level ? ` (${level})` : ""}
-          </Text>
-        );
-      })}
-    </View>
-  );
-}
+// ChipList removed in favor of SkillsList
 
-function Section({ section, lang }: { section: CVSection; lang: "tr" | "en" }) {
+function Section({
+  section,
+  lang,
+  styles,
+}: {
+  section: CVSection;
+  lang: "tr" | "en";
+  styles: TemplateStyles;
+}) {
   const entries = section.entries || [];
   const sortedEntries = [...entries].sort((a, b) =>
     (a.orderKey || "").localeCompare(b.orderKey || "")
@@ -314,7 +274,7 @@ function Section({ section, lang }: { section: CVSection; lang: "tr" | "en" }) {
     return (
       <View>
         <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
-        <SkillsList entries={sortedEntries} />
+        <SkillsList entries={sortedEntries} styles={styles} />
       </View>
     );
   }
@@ -323,7 +283,7 @@ function Section({ section, lang }: { section: CVSection; lang: "tr" | "en" }) {
     return (
       <View>
         <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
-        <ChipList entries={sortedEntries} />
+        <SkillsList entries={sortedEntries} styles={styles} />
       </View>
     );
   }
@@ -332,13 +292,15 @@ function Section({ section, lang }: { section: CVSection; lang: "tr" | "en" }) {
     <View>
       <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
       {sortedEntries.map((entry) => (
-        <StandardEntry key={entry.id} entry={entry} lang={lang} />
+        <StandardEntry key={entry.id} entry={entry} lang={lang} styles={styles} />
       ))}
     </View>
   );
 }
 
-export function ATSClassicTemplate({ data }: CVTemplateProps) {
+export function ATSClassicTemplate({ data, compact = false }: CVTemplateProps) {
+  const styles = createTemplateStyles(compact);
+
   const sortedSections = [...(data.sections || [])].sort((a, b) =>
     (a.orderKey || "").localeCompare(b.orderKey || "")
   );
@@ -393,7 +355,7 @@ export function ATSClassicTemplate({ data }: CVTemplateProps) {
 
         {/* Summary section */}
         {data.summary ? (
-          <View style={{ marginBottom: 6 }}>
+          <View style={{ marginBottom: compact ? 4 : 6 }}>
             <Text style={styles.sectionTitle}>
               {data.language === "tr" ? "ÖZET" : "PROFESSIONAL SUMMARY"}
             </Text>
@@ -403,7 +365,7 @@ export function ATSClassicTemplate({ data }: CVTemplateProps) {
 
         {/* Dynamic Sections */}
         {sortedSections.map((section) => (
-          <Section key={section.id} section={section} lang={data.language} />
+          <Section key={section.id} section={section} lang={data.language} styles={styles} />
         ))}
       </Page>
     </Document>

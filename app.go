@@ -164,7 +164,32 @@ func (a *App) ATSFullCheck(c *cv.CV, jobDescription string) (atsscore.FinalRepor
 		return atsscore.FormatOnly(formatReport), fmt.Errorf("iş ilanı eşleştirmesi için Gemini API anahtarı gereklidir")
 	}
 
-	cvJSONBytes, err := json.Marshal(c)
+	// Geçici ID haritalaması (Temporary ID Mapping)
+	// LLM'in uzun UUID'leri halüsinasyonla bozmasını engellemek için, 
+	// CV verisini LLM'e göndermeden önce Entry ID'lerini e1, e2 gibi kısa string'lere çeviriyoruz.
+	idMap := make(map[string]string) // tempID -> realUUID
+	mappedCV := *c
+	mappedSections := make([]cv.Section, len(c.Sections))
+	
+	tempCounter := 1
+	for i, s := range c.Sections {
+		mappedSec := s
+		mappedEntries := make([]cv.Entry, len(s.Entries))
+		for j, e := range s.Entries {
+			tempID := fmt.Sprintf("e%d", tempCounter)
+			tempCounter++
+			
+			idMap[tempID] = e.ID
+			mappedEntry := e
+			mappedEntry.ID = tempID
+			mappedEntries[j] = mappedEntry
+		}
+		mappedSec.Entries = mappedEntries
+		mappedSections[i] = mappedSec
+	}
+	mappedCV.Sections = mappedSections
+
+	cvJSONBytes, err := json.Marshal(mappedCV)
 	if err != nil {
 		return atsscore.FinalReport{}, fmt.Errorf("cv verisi serileştirilemedi: %w", err)
 	}
@@ -176,6 +201,13 @@ func (a *App) ATSFullCheck(c *cv.CV, jobDescription string) (atsscore.FinalRepor
 	})
 	if err != nil {
 		return atsscore.FinalReport{}, err
+	}
+
+	// Gelen önerilerdeki (suggestions) geçici ID'leri gerçek UUID'lere geri çevir
+	for i, sug := range matchResp.Suggestions {
+		if realID, ok := idMap[sug.EntryID]; ok {
+			matchResp.Suggestions[i].EntryID = realID
+		}
 	}
 
 	return atsscore.Combine(formatReport, matchResp), nil
