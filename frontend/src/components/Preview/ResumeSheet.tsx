@@ -68,7 +68,7 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
       if (cv.github) contactItems.push({ text: cleanUrlDisplay(cv.github), href: getHref(cv.github, "url") });
       if (cv.website) contactItems.push({ text: cleanUrlDisplay(cv.website), href: getHref(cv.website, "url") });
 
-      const headerHeight = isCompact ? 72 : 88;
+      const headerHeight = isCompact ? 92 : 110;
       items.push({
         key: "header",
         height: headerHeight,
@@ -108,7 +108,7 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
         const summaryLines = Math.ceil(cv.summary.length / charPerLine);
         const summaryHeight = isCompact
           ? 20 + summaryLines * 11.5 + 4
-          : 30 + summaryLines * 13.5 + 6;
+          : 27 + summaryLines * 13.05 + 6;
 
         items.push({
           key: "summary",
@@ -134,7 +134,7 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
         );
 
         // Section Title
-        const secTitleHeight = isCompact ? 21 : 30;
+        const secTitleHeight = isCompact ? 21 : 27;
         items.push({
           key: `sec-title-${section.id}`,
           height: secTitleHeight,
@@ -158,7 +158,7 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
               const lineCount = Math.ceil((category.length + skillsText.length) / charPerLine);
               const rowHeight = isCompact
                 ? Math.max(1, lineCount) * 11.5 + 1.5
-                : Math.max(1, lineCount) * 13.5 + 2.5;
+                : Math.max(1, lineCount) * 12.8 + 2.5;
 
               items.push({
                 key: `skill-${e.id}`,
@@ -227,7 +227,7 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
                 const bulletLines = Math.max(1, Math.ceil(bulletText.length / charPerLine));
                 const bulletHeight = isCompact
                   ? bulletLines * 11.5 + 1.5
-                  : bulletLines * 13.5 + 2.5;
+                  : bulletLines * 12.15 + 2.5;
 
                 items.push({
                   key: `bullet-${entry.id}-${bIndex}`,

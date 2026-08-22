@@ -65,8 +65,8 @@ const createTemplateStyles = (compact: boolean) => StyleSheet.create({
     textDecoration: "none",
   },
   photo: {
-    width: compact ? 52 : 60,
-    height: compact ? 52 : 60,
+    width: compact ? 72 : 84,
+    height: compact ? 72 : 84,
     borderRadius: 6,
     objectFit: "cover",
     borderWidth: 1,
