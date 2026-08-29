@@ -1,31 +1,186 @@
 import React, { useState } from "react";
-import { Download, Loader2, Plus, Trash2 } from "lucide-react";
+import {
+  Download,
+  Loader2,
+  Plus,
+  Trash2,
+  GripVertical,
+  User,
+  FileText,
+  Briefcase,
+  GraduationCap,
+  Wrench,
+  Languages,
+  Award,
+  FolderGit2,
+  Layers,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { pdf } from "@react-pdf/renderer";
 import { useCVStore } from "../store/useCVStore";
 import { ATSClassicTemplate } from "../templates/ATSClassicTemplate";
 import { WailsBridge } from "../lib/wailsBridge";
 import { useTranslation, getSectionDisplayTitle } from "../i18n";
 import { toast } from "sonner";
+import type { CVSection } from "../types/cv";
 
 interface SidebarProps {
   onOpenAddSection: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
+const getSectionIcon = (type: string) => {
+  switch (type) {
+    case "experience":
+      return <Briefcase className="w-3.5 h-3.5" />;
+    case "education":
+      return <GraduationCap className="w-3.5 h-3.5" />;
+    case "skills":
+      return <Wrench className="w-3.5 h-3.5" />;
+    case "languages":
+      return <Languages className="w-3.5 h-3.5" />;
+    case "certifications":
+      return <Award className="w-3.5 h-3.5" />;
+    case "projects":
+      return <FolderGit2 className="w-3.5 h-3.5" />;
+    default:
+      return <Layers className="w-3.5 h-3.5" />;
+  }
+};
+
+interface SortableSectionItemProps {
+  section: CVSection;
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+}
+
+const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
+  section,
+  isActive,
+  onSelect,
+  onDelete,
+}) => {
   const { t, lang } = useTranslation();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const isCustom = !["experience", "education", "skills"].includes(section.sectionType);
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      onClick={onSelect}
+      className={`group flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-[7px] text-[13px] cursor-pointer transition-all ${
+        isDragging
+          ? "opacity-50 shadow-md ring-2 ring-[var(--accent)] z-20 bg-[var(--panel-card)]"
+          : isActive
+          ? "bg-[var(--accent-soft-strong)] text-[var(--accent)] font-semibold"
+          : "text-[var(--ink)] hover:bg-[var(--border)]"
+      }`}
+    >
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          className="p-0.5 text-[var(--ink-faint)] hover:text-[var(--ink)] opacity-40 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity shrink-0"
+          title={t("common.drag")}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+
+        <span
+          className={`shrink-0 ${
+            isActive ? "text-[var(--accent)]" : "text-[var(--ink-secondary)]"
+          }`}
+        >
+          {getSectionIcon(section.sectionType)}
+        </span>
+
+        <span className="truncate flex-1 text-[12.5px]">
+          {getSectionDisplayTitle(section, lang)}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        className={`p-1 text-[var(--ink-faint)] hover:text-rose-500 rounded transition-opacity shrink-0 cursor-pointer ${
+          isCustom ? "opacity-0 group-hover:opacity-100" : "opacity-0 group-hover:opacity-70 hover:!opacity-100"
+        }`}
+        title={t("sidebar.deleteSectionTitle")}
+      >
+        <Trash2 className="w-3 h-3" />
+      </button>
+    </li>
+  );
+};
+
+export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
+  const { t } = useTranslation();
   const activePanel = useCVStore((state) => state.activePanel);
   const setActivePanel = useCVStore((state) => state.setActivePanel);
   const deleteSection = useCVStore((state) => state.deleteSection);
+  const reorderSections = useCVStore((state) => state.reorderSections);
   const rawSections = useCVStore((state) => state.cv?.sections);
   const sections = rawSections || [];
   const [isExporting, setIsExporting] = useState(false);
+
+  const sortedSections = [...sections].sort((a, b) =>
+    (a.orderKey || "").localeCompare(b.orderKey || "")
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 4,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handlePanelClick = (panelKey: string) => {
     setActivePanel(panelKey);
 
     // Scroll to section in preview sheet and flash heading
     setTimeout(() => {
-      const target = document.querySelector(`[data-key="${panelKey}"]`);
+      const target = document.querySelector(
+        `[data-key="${panelKey}"], [data-section-type="${panelKey}"]`
+      );
       if (target) {
         target.scrollIntoView({ behavior: "smooth", block: "nearest" });
         const h2 = target.querySelector("h2");
@@ -35,6 +190,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
         }
       }
     }, 50);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sortedSections.findIndex((s) => s.id === active.id);
+    const newIndex = sortedSections.findIndex((s) => s.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reordered = arrayMove(sortedSections, oldIndex, newIndex);
+      reorderSections(reordered);
+    }
   };
 
   const handleExportPDF = async () => {
@@ -59,107 +227,98 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
     }
   };
 
-  // Static standard sections
-  const standardItems = [
-    { id: "personal", label: t("sidebar.personal") },
-    { id: "summary", label: t("sidebar.summary") },
-    { id: "experience", label: t("sidebar.experience") },
-    { id: "education", label: t("sidebar.education") },
-    { id: "skills", label: t("sidebar.skills") },
-  ];
-
-  // Additional custom sections (like Projects, Certifications, etc.)
-  const customSections = sections.filter(
-    (s) => !["experience", "education", "skills"].includes(s.sectionType)
-  );
-
   return (
     <nav
       className="w-[210px] h-full border-r border-[var(--border)] p-3.5 flex flex-col shrink-0 select-none"
       style={{ background: "var(--sidebar-bg)" }}
     >
-      <div className="text-[10.5px] font-bold tracking-[1.2px] text-[var(--ink-faint)] uppercase px-2 pb-2.5">
-        {t("sidebar.sections")}
-      </div>
-
-      <ul className="flex flex-col gap-0.5 m-0 p-0 list-none overflow-y-auto custom-scrollbar flex-1">
-        {standardItems.map((item) => {
-          const isActive = activePanel === item.id;
-          return (
+      <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-4">
+        {/* Header / Basics fixed group */}
+        <div>
+          <div className="text-[10px] font-bold tracking-[1.1px] text-[var(--ink-faint)] uppercase px-2 pb-1.5">
+            {t("sidebar.general")}
+          </div>
+          <ul className="flex flex-col gap-0.5 m-0 p-0 list-none">
             <li
-              key={item.id}
-              onClick={() => handlePanelClick(item.id)}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-[7px] text-[13px] cursor-pointer transition-colors ${
-                isActive
+              onClick={() => handlePanelClick("personal")}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12.5px] cursor-pointer transition-colors ${
+                activePanel === "personal"
                   ? "bg-[var(--accent-soft-strong)] text-[var(--accent)] font-semibold"
                   : "text-[var(--ink)] hover:bg-[var(--border)]"
               }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  isActive ? "bg-[var(--accent)]" : "bg-[var(--ink-faint)]"
+                className={`shrink-0 ${
+                  activePanel === "personal" ? "text-[var(--accent)]" : "text-[var(--ink-secondary)]"
                 }`}
-              />
-              <span className="truncate flex-1">{item.label}</span>
+              >
+                <User className="w-3.5 h-3.5" />
+              </span>
+              <span className="truncate flex-1">{t("sidebar.personal")}</span>
             </li>
-          );
-        })}
 
-        {/* Custom Sections */}
-        {customSections.length > 0 && (
-          <div className="pt-2 mt-1 border-t border-[var(--border)]">
-            <div className="text-[9.5px] font-bold tracking-[1px] text-[var(--ink-faint)] uppercase px-2 mb-1">
-              {t("sidebar.customSections")}
-            </div>
-            {customSections.map((sec) => {
-              const isActive = activePanel === sec.id;
-              return (
-                <li
-                  key={sec.id}
-                  onClick={() => handlePanelClick(sec.id)}
-                  className={`group flex items-center justify-between gap-2 px-2.5 py-2 rounded-[7px] text-[13px] cursor-pointer transition-colors ${
-                    isActive
-                      ? "bg-[var(--accent-soft-strong)] text-[var(--accent)] font-semibold"
-                      : "text-[var(--ink)] hover:bg-[var(--border)]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        isActive ? "bg-[var(--accent)]" : "bg-[var(--ink-faint)]"
-                      }`}
-                    />
-                    <span className="truncate">{getSectionDisplayTitle(sec, lang)}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteSection(sec.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-[var(--ink-faint)] hover:text-rose-500 rounded transition-opacity"
-                    title={t("sidebar.deleteSectionTitle")}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </li>
-              );
-            })}
+            <li
+              onClick={() => handlePanelClick("summary")}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[7px] text-[12.5px] cursor-pointer transition-colors ${
+                activePanel === "summary"
+                  ? "bg-[var(--accent-soft-strong)] text-[var(--accent)] font-semibold"
+                  : "text-[var(--ink)] hover:bg-[var(--border)]"
+              }`}
+            >
+              <span
+                className={`shrink-0 ${
+                  activePanel === "summary" ? "text-[var(--accent)]" : "text-[var(--ink-secondary)]"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </span>
+              <span className="truncate flex-1">{t("sidebar.summary")}</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Dynamic Reorderable Sections */}
+        <div className="flex-1">
+          <div className="text-[10px] font-bold tracking-[1.1px] text-[var(--ink-faint)] uppercase px-2 pb-1.5 flex items-center justify-between">
+            <span>{t("sidebar.sections")}</span>
           </div>
-        )}
 
-        {/* Add section trigger button */}
-        <li className="mt-1">
-          <button
-            type="button"
-            onClick={onOpenAddSection}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[11.5px] text-[var(--ink-secondary)] hover:text-[var(--accent)] hover:bg-[var(--border)] rounded-[7px] transition-colors cursor-pointer"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{t("sidebar.addNewSection")}</span>
-          </button>
-        </li>
-      </ul>
+            <SortableContext
+              items={sortedSections.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="flex flex-col gap-0.5 m-0 p-0 list-none">
+                {sortedSections.map((sec) => (
+                  <SortableSectionItem
+                    key={sec.id}
+                    section={sec}
+                    isActive={activePanel === sec.id || activePanel === sec.sectionType}
+                    onSelect={() => handlePanelClick(sec.id)}
+                    onDelete={() => deleteSection(sec.id)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+
+          {/* Add section trigger button */}
+          <div className="mt-2 pt-1 border-t border-[var(--border)]">
+            <button
+              type="button"
+              onClick={onOpenAddSection}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-[11.5px] text-[var(--ink-secondary)] hover:text-[var(--accent)] hover:bg-[var(--border)] rounded-[7px] transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{t("sidebar.addNewSection")}</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Export Button pinned to bottom */}
       <div className="pt-3 border-t border-[var(--border)]">

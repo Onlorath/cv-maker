@@ -28,10 +28,13 @@ export const CVEditorPane: React.FC = () => {
       case "skills":
         return <SkillsPanel />;
       default: {
-        // Look up by section ID in custom sections
-        const customSec = sections.find((s) => s.id === activePanel);
-        if (customSec) {
-          return <GenericSectionPanel key={customSec.id} section={customSec} />;
+        // Look up by section ID
+        const matchedSec = sections.find((s) => s.id === activePanel);
+        if (matchedSec) {
+          if (matchedSec.sectionType === "experience") return <ExperiencePanel />;
+          if (matchedSec.sectionType === "education") return <EducationPanel />;
+          if (matchedSec.sectionType === "skills") return <SkillsPanel />;
+          return <GenericSectionPanel key={matchedSec.id} section={matchedSec} />;
         }
         return <PersonalDetailsPanel />;
       }

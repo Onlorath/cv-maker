@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import type { CVData, CVEntry } from "../../types/cv";
+import type { CVData } from "../../types/cv";
 import { useTranslation, getSectionDisplayTitle } from "../../i18n";
 import { useCVStore } from "../../store/useCVStore";
 import { cleanUrlDisplay, getHref, parseBullets, formatDateRange } from "../../lib/cvUtils";
@@ -139,7 +139,12 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
           key: `sec-title-${section.id}`,
           height: secTitleHeight,
           node: (
-            <div key={`sec-title-${section.id}`} className="rs-section" data-key={section.id}>
+            <div
+              key={`sec-title-${section.id}`}
+              className="rs-section"
+              data-key={section.id}
+              data-section-type={section.sectionType}
+            >
               <h2 className="rs-section-title">{getSectionDisplayTitle(section, lang)}</h2>
             </div>
           ),
@@ -201,14 +206,47 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
             const entryHeadHeight = isCompact ? 26 : 34;
 
             // Entry header block (title, dates, subtitle, location)
+            const linkUrl = (entry.meta?.link as string) || (entry.meta?.url as string) || "";
+            const href = linkUrl ? getHref(linkUrl, "url") : "";
+            const cleanLink = linkUrl ? cleanUrlDisplay(linkUrl) : "";
+
             items.push({
               key: `entry-head-${entry.id}`,
               height: entryHeadHeight,
               node: (
                 <div key={`entry-head-${entry.id}`} className="rs-entry-block mb-1">
                   <div className="rs-entry-header-row">
-                    <span className="rs-entry-title">{entry.title || t("preview.defaultRoleDegree")}</span>
-                    {dateRange && <span className="rs-entry-dates">{dateRange}</span>}
+                    <div className="flex items-baseline gap-1.5 flex-wrap min-w-0 flex-1 mr-2">
+                      <span className="rs-entry-title">{entry.title || t("preview.defaultRoleDegree")}</span>
+                      {cleanLink && href && (
+                        <span className="text-[11px] font-normal text-[#64748b] inline-flex items-center gap-1">
+                          <span>|</span>
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5 cursor-pointer font-medium"
+                            title={href}
+                          >
+                            <span>{cleanLink}</span>
+                            <svg
+                              className="w-2.5 h-2.5 opacity-70 shrink-0 inline"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                          </a>
+                        </span>
+                      )}
+                    </div>
+                    {dateRange && <span className="rs-entry-dates shrink-0">{dateRange}</span>}
                   </div>
                   <div className="rs-entry-header-row mt-0.5">
                     <span className="rs-entry-subtitle">{entry.subtitle || " "}</span>

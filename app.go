@@ -169,6 +169,10 @@ func (a *App) ATSFullCheck(c *cv.CV, jobDescription string) (atsscore.FinalRepor
 	// CV verisini LLM'e göndermeden önce Entry ID'lerini e1, e2 gibi kısa string'lere çeviriyoruz.
 	idMap := make(map[string]string) // tempID -> realUUID
 	mappedCV := *c
+	// KRİTİK DÜZELTME: Base64 kodlu profil resmi devasa bir string'dir (yüzbinlerce token).
+	// LLM'in resmi görmesine gerek olmadığı için context şişmesini (429 Rate Limit) engellemek adına siliyoruz.
+	mappedCV.PhotoPath = nil
+
 	mappedSections := make([]cv.Section, len(c.Sections))
 	
 	tempCounter := 1

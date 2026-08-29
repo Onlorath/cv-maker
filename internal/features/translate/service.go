@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/googleapi"
@@ -47,32 +48,60 @@ type TranslateResponse struct {
 }
 
 func buildPrompt(req TranslateRequest) string {
-	base := fmt.Sprintf(
-		"You are a professional resume writer and translator. "+
-			"Translate the following CV text from %s to %s. "+
-			"Do not translate literally — rewrite it the way a native %s resume "+
-			"would phrase it, following standard resume conventions for that language.\n\n",
-		req.SourceLanguage, req.TargetLanguage, req.TargetLanguage,
-	)
-
-	switch req.FieldType {
-	case "summary":
-		base += "This is a professional summary (2-4 sentences). Keep it concise, " +
-			"confident, and free of first-person pronouns where the target language " +
-			"convention omits them.\n\n"
-	case "bullet":
-		base += "This is a single resume bullet point describing a responsibility or " +
-			"achievement. Rewrite it starting with a strong action verb in the target " +
-			"language, keep it to one line, quantify impact if a number is present in " +
-			"the source. Do not invent numbers that are not in the source.\n\n"
-	case "title":
-		base += "This is a job title or section heading. Use the standard equivalent " +
-			"term used in the target language's job market, not a literal translation.\n\n"
+	sourceLang := req.SourceLanguage
+	switch strings.ToLower(sourceLang) {
+	case "tr", "turkish":
+		sourceLang = "Turkish"
+	case "en", "english":
+		sourceLang = "English"
+	default:
+		sourceLang = "the source language"
 	}
 
-	base += "Preserve proper nouns (company names, product names, technology names, " +
-		"university names) exactly as written — do not translate them.\n\n"
-	base += "Return ONLY the translated text, no preamble, no quotes, no explanation.\n\n"
+	targetLang := req.TargetLanguage
+	switch strings.ToLower(targetLang) {
+	case "tr", "turkish":
+		targetLang = "Turkish"
+	case "en", "english":
+		targetLang = "English"
+	default:
+		targetLang = "English"
+	}
+
+	base := fmt.Sprintf(
+		"You are an expert ATS resume writer and professional career translator. "+
+			"Translate and adapt the following CV text from %s to %s.\n"+
+			"Do not translate literally — rewrite it so that it reads naturally, confidently, and professionally in %s, adhering to modern resume best practices.\n\n",
+		sourceLang, targetLang, targetLang,
+	)
+
+	if targetLang == "Turkish" {
+		switch req.FieldType {
+		case "summary":
+			base += "This is a professional career summary (2-4 sentences). Rewrite it in clear, concise, professional Turkish resume tone, avoiding casual phrasing.\n\n"
+		case "bullet":
+			base += "This is a resume bullet point. Rewrite it starting with strong active verbs in Turkish (e.g. 'Geliştirdi', 'Yeniden mimarisini kurdu', 'Optimize ederek %40 performans artışı sağladı'). Keep bullet structure, preserve any metrics, and do not invent new facts.\n\n"
+		case "title":
+			base += "This is a job title, degree name, or section heading. Use the standard professional equivalent used in the Turkish job market (e.g. 'Yazılım Geliştirici', 'Kıdemli Sistem Mimarı').\n\n"
+		default:
+			base += "Translate this CV text into natural, professional Turkish resume language.\n\n"
+		}
+	} else {
+		// English target
+		switch req.FieldType {
+		case "summary":
+			base += "This is a professional career summary (2-4 sentences). Keep it concise, impactful, confident, and free of first-person pronouns (no 'I' or 'my').\n\n"
+		case "bullet":
+			base += "This is a resume bullet point describing a responsibility or achievement. Rewrite it starting with a strong past-tense action verb (e.g. 'Architected', 'Spearheaded', 'Optimized', 'Engineered'). Keep it to one line, quantify impact if numbers are present. Do not invent numbers.\n\n"
+		case "title":
+			base += "This is a job title, degree, or section heading. Use standard international / US tech resume terminology, not a literal translation.\n\n"
+		default:
+			base += "Translate this CV text into natural, professional English resume language.\n\n"
+		}
+	}
+
+	base += "Preserve all proper nouns (company names, product names, technology names like React, Go, Docker, AWS, PostgreSQL, university names) exactly as written — do not translate or alter them.\n\n"
+	base += "Return ONLY the translated text, no preamble, no markdown quotes, no explanations.\n\n"
 	base += "Text:\n" + req.Text
 
 	return base
@@ -88,8 +117,8 @@ func NewGeminiTranslator(apiKey string) Translator {
 	return &geminiTranslator{
 		apiKey: apiKey,
 		models: []string{
-			"gemini-flash-latest",
-			"gemini-flash-lite-latest",
+			"gemini-3.6-flash",
+			"gemini-3.1-flash-lite",
 		},
 	}
 }
@@ -98,6 +127,10 @@ func (g *geminiTranslator) TranslateCV(ctx context.Context, req TranslateRequest
 	if g.apiKey == "" {
 		return TranslateResponse{}, fmt.Errorf("gemini API anahtarı ayarlanmamış")
 	}
+
+	// 15 saniyelik kesin zaman aşımı (timeout) ekliyoruz.
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {
@@ -148,7 +181,16 @@ func (g *geminiTranslator) TranslateCV(ctx context.Context, req TranslateRequest
 			continue
 		}
 
-		translatedText := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+		rawText := fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0])
+		cleaned := strings.TrimSpace(rawText)
+		cleaned = strings.TrimPrefix(cleaned, "```markdown")
+		cleaned = strings.TrimPrefix(cleaned, "```")
+		cleaned = strings.TrimSuffix(cleaned, "```")
+		cleaned = strings.TrimSpace(cleaned)
+		if len(cleaned) >= 2 && ((cleaned[0] == '"' && cleaned[len(cleaned)-1] == '"') || (cleaned[0] == '\'' && cleaned[len(cleaned)-1] == '\'')) {
+			cleaned = strings.TrimSpace(cleaned[1 : len(cleaned)-1])
+		}
+
 		slog.InfoContext(ctx, "gemini translation succeeded",
 			"model", modelName,
 			"fieldType", req.FieldType,
@@ -156,7 +198,7 @@ func (g *geminiTranslator) TranslateCV(ctx context.Context, req TranslateRequest
 		)
 
 		return TranslateResponse{
-			TranslatedText: translatedText,
+			TranslatedText: cleaned,
 			Note:           "",
 		}, nil
 	}

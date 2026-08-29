@@ -1,26 +1,15 @@
 import React, { useState } from "react";
-import { Sparkles, Loader2, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { useCVStore } from "../../store/useCVStore";
 import { useTranslation } from "../../i18n";
+import { AITranslateButton } from "../Common/AITranslateButton";
 
 export const SummaryPanel: React.FC = () => {
-  const { cv, updateHeader, translateField, translationState } = useCVStore();
+  const { cv, updateHeader } = useCVStore();
   const { t } = useTranslation();
   const [successNote, setSuccessNote] = useState(false);
 
   if (!cv) return null;
-
-  const isTranslating = translationState["summary"] === "translating";
-
-  const handleTranslate = () => {
-    if (!cv.summary || isTranslating) return;
-
-    translateField("summary", "summary", cv.summary, (translated) => {
-      updateHeader({ summary: translated });
-      setSuccessNote(true);
-      setTimeout(() => setSuccessNote(false), 4000);
-    });
-  };
 
   return (
     <section className="animate-fade-in space-y-4">
@@ -36,25 +25,16 @@ export const SummaryPanel: React.FC = () => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="field-label m-0">{t("editor.summary.fieldLabel")}</label>
-
-          <button
-            type="button"
-            onClick={handleTranslate}
-            disabled={isTranslating || !cv.summary}
-            className="inline-flex items-center gap-1.5 bg-[var(--accent-soft)] hover:bg-[var(--accent-soft-strong)] text-[var(--accent)] rounded-full px-3 py-1 text-[12px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
-            title={t("editor.summary.translateTitle")}
-          >
-            {isTranslating ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5" />
-            )}
-            <span>
-              {isTranslating
-                ? t("editor.summary.translating")
-                : t("editor.summary.translateButton")}
-            </span>
-          </button>
+          <AITranslateButton
+            fieldKey="summary"
+            fieldType="summary"
+            text={cv.summary || ""}
+            onTranslated={(translated) => {
+              updateHeader({ summary: translated });
+              setSuccessNote(true);
+              setTimeout(() => setSuccessNote(false), 4000);
+            }}
+          />
         </div>
 
         <textarea
@@ -62,7 +42,7 @@ export const SummaryPanel: React.FC = () => {
           value={cv.summary || ""}
           onChange={(e) => updateHeader({ summary: e.target.value })}
           placeholder={t("editor.summary.placeholder")}
-          className="native-textarea"
+          className="native-textarea font-normal leading-relaxed"
         />
 
         {successNote && (

@@ -21,6 +21,21 @@ func InitDB(dsn string, migrationsFS embed.FS) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("failed to connect to sqlite db: %w", err)
 	}
 
+	// Configure SQLite connection pooling and concurrency pragmas to eliminate SQLITE_BUSY errors
+	db.SetMaxOpenConns(1)
+
+	pragmas := []string{
+		"PRAGMA busy_timeout = 5000;",
+		"PRAGMA journal_mode = WAL;",
+		"PRAGMA synchronous = NORMAL;",
+		"PRAGMA foreign_keys = ON;",
+	}
+	for _, pragma := range pragmas {
+		if _, err := db.Exec(pragma); err != nil {
+			slog.Warn("failed to set sqlite pragma", "pragma", pragma, "error", err)
+		}
+	}
+
 	// Setup goose to use our db
 	goose.SetBaseFS(migrationsFS)
 	if err := goose.SetDialect("sqlite3"); err != nil {

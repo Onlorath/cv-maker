@@ -95,8 +95,8 @@ const initialMockCV: CVData = {
           id: "ent-3",
           sectionId: "sec-2",
           orderKey: "a0",
-          title: "Bilgisayar Mühendisliği (Lisans)",
-          subtitle: "İstanbul Teknik Üniversitesi",
+          title: "İstanbul Teknik Üniversitesi",
+          subtitle: "Bilgisayar Mühendisliği (Lisans)",
           location: "İstanbul",
           dateStart: "2016-09",
           dateEnd: "2020-06",
@@ -296,7 +296,10 @@ export const WailsBridge = {
     // Fallback simulate translation in browser dev mode
     await new Promise((r) => setTimeout(r, 800));
     return {
-      translatedText: `[EN Resume Translation] ${req.text}`,
+      translatedText:
+        req.targetLanguage === "tr"
+          ? `[TR CV Çevirisi] ${req.text}`
+          : `[EN Resume Translation] ${req.text}`,
       note: "Development simulation",
     };
   },

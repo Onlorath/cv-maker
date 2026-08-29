@@ -2,6 +2,8 @@ import React, { useRef } from "react";
 import { User, Plus, Trash2 } from "lucide-react";
 import { useCVStore } from "../../store/useCVStore";
 import { useTranslation } from "../../i18n";
+import { resizeImage } from "../../lib/cvUtils";
+import { AITranslateButton } from "../Common/AITranslateButton";
 
 export const PersonalDetailsPanel: React.FC = () => {
   const { cv, updateHeader } = useCVStore();
@@ -10,16 +12,15 @@ export const PersonalDetailsPanel: React.FC = () => {
 
   if (!cv) return null;
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (typeof event.target?.result === "string") {
-        updateHeader({ photoPath: event.target.result });
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const resizedBase64 = await resizeImage(file, 400, 400);
+      updateHeader({ photoPath: resizedBase64 });
+    } catch (err) {
+      console.error("Failed to resize image", err);
+    }
   };
 
   const handleRemovePhoto = (e: React.MouseEvent) => {
@@ -84,31 +85,43 @@ export const PersonalDetailsPanel: React.FC = () => {
       <div className="space-y-3.5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="field-label">{t("editor.personal.fullName")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.fullName")}</label>
+            </div>
             <input
               type="text"
               value={cv.fullName || ""}
               onChange={(e) => updateHeader({ fullName: e.target.value })}
               placeholder={t("editor.personal.fullNamePlaceholder")}
-              className="native-input"
+              className="native-input font-medium"
             />
           </div>
 
           <div>
-            <label className="field-label">{t("editor.personal.jobTitle")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.jobTitle")}</label>
+              <AITranslateButton
+                fieldKey="jobTitle"
+                fieldType="title"
+                text={cv.jobTitle || ""}
+                onTranslated={(val) => updateHeader({ jobTitle: val })}
+              />
+            </div>
             <input
               type="text"
               value={cv.jobTitle || ""}
               onChange={(e) => updateHeader({ jobTitle: e.target.value })}
               placeholder={t("editor.personal.jobTitlePlaceholder")}
-              className="native-input"
+              className="native-input font-medium"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="field-label">{t("editor.personal.email")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.email")}</label>
+            </div>
             <input
               type="email"
               value={cv.email || ""}
@@ -119,7 +132,9 @@ export const PersonalDetailsPanel: React.FC = () => {
           </div>
 
           <div>
-            <label className="field-label">{t("editor.personal.phone")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.phone")}</label>
+            </div>
             <input
               type="tel"
               value={cv.phone || ""}
@@ -132,7 +147,9 @@ export const PersonalDetailsPanel: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="field-label">{t("editor.personal.location")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.location")}</label>
+            </div>
             <input
               type="text"
               value={cv.location || ""}
@@ -143,7 +160,9 @@ export const PersonalDetailsPanel: React.FC = () => {
           </div>
 
           <div>
-            <label className="field-label">{t("editor.personal.linkedin")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.linkedin")}</label>
+            </div>
             <input
               type="text"
               value={cv.linkedin || ""}
@@ -156,7 +175,9 @@ export const PersonalDetailsPanel: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="field-label">{t("editor.personal.github")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.github")}</label>
+            </div>
             <input
               type="text"
               value={cv.github || ""}
@@ -167,7 +188,9 @@ export const PersonalDetailsPanel: React.FC = () => {
           </div>
 
           <div>
-            <label className="field-label">{t("editor.personal.website")}</label>
+            <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+              <label className="field-label m-0 truncate">{t("editor.personal.website")}</label>
+            </div>
             <input
               type="text"
               value={cv.website || ""}

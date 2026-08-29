@@ -113,13 +113,20 @@ body {
 
 /* Form Input & Labels */
 .field-label {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.9px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--ink-faint);
   margin-bottom: 5px;
+  line-height: 1.2;
+}
+
+.field-label.m-0 {
+  margin-bottom: 0;
 }
 
 .native-input,

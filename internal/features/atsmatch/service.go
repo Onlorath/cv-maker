@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/googleapi"
@@ -99,8 +100,8 @@ func NewGeminiMatcher(apiKey string) Matcher {
 	return &geminiMatcher{
 		apiKey: apiKey,
 		models: []string{
-			"gemini-flash-latest",
-			"gemini-flash-lite-latest",
+			"gemini-3.6-flash",
+			"gemini-3.1-flash-lite",
 		},
 	}
 }
@@ -109,6 +110,10 @@ func (g *geminiMatcher) Match(ctx context.Context, req MatchRequest) (MatchRespo
 	if g.apiKey == "" {
 		return MatchResponse{}, fmt.Errorf("gemini API anahtarı ayarlanmamış")
 	}
+
+	// 30 saniyelik kesin zaman aşımı (timeout) ekliyoruz. ATS daha uzun sürdüğü için 30 saniye.
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {

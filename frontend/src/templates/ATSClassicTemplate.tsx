@@ -196,10 +196,24 @@ function StandardEntry({
 }) {
   const presentLabel = lang === "tr" ? "Devam Ediyor" : "Present";
   const dateRange = formatDateRange(entry, presentLabel);
+  const linkUrl = (entry.meta?.link as string) || (entry.meta?.url as string) || "";
+  const href = linkUrl ? getHref(linkUrl, "url") : "";
+  const cleanLink = linkUrl ? cleanUrlDisplay(linkUrl) : "";
+
   return (
     <View style={styles.entryBlock}>
       <View style={styles.entryHeaderRow}>
-        <Text style={styles.entryTitle}>{entry.title || "Untitled Role / Degree"}</Text>
+        <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", flex: 1, marginRight: 8 }}>
+          <Text style={styles.entryTitle}>{entry.title || "Untitled Role / Degree"}</Text>
+          {cleanLink && href ? (
+            <Text style={{ fontSize: styles.entryDates.fontSize, color: "#64748b", marginLeft: 4 }}>
+              {" | "}
+              <Link src={href} style={{ color: "#2563eb", textDecoration: "none" }}>
+                {cleanLink}
+              </Link>
+            </Text>
+          ) : null}
+        </View>
         {dateRange ? <Text style={styles.entryDates}>{dateRange}</Text> : null}
       </View>
       <View style={styles.entryHeaderRow}>

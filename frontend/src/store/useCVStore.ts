@@ -5,7 +5,13 @@ import { translate } from "../i18n";
 import { toast } from "sonner";
 import { debounce } from "../lib/cvUtils";
 
-export type TranslationState = "idle" | "translating" | "success" | "error";
+export type TranslationState =
+  | "idle"
+  | "translating"
+  | "translating-en"
+  | "translating-tr"
+  | "success"
+  | "error";
 
 interface CVStore {
   cv: CVData | null;
@@ -37,7 +43,14 @@ interface CVStore {
   reorderEntries: (sectionId: string, newEntries: CVEntry[]) => Promise<void>;
 
   // AI Translation Action
-  translateField: (key: string, fieldType: "summary" | "bullet" | "title", text: string, onTranslated: (res: string) => void) => Promise<void>;
+  translateField: (
+    key: string,
+    fieldType: "summary" | "bullet" | "title",
+    text: string,
+    onTranslated: (res: string) => void,
+    targetLanguage?: "en" | "tr",
+    sourceLanguage?: "tr" | "en" | "auto"
+  ) => Promise<void>;
 
   // UI Control
   activePanel: string;
@@ -220,20 +233,27 @@ export const useCVStore = create<CVStore>((set, get) => ({
 
   reorderSections: async (newSections) => {
     const { cv } = get();
-    const lang = (cv?.language || "tr") as "tr" | "en";
-    set((state) => ({
-      cv: state.cv ? { ...state.cv, sections: newSections } : null,
+    if (!cv) return;
+    const lang = (cv.language || "tr") as "tr" | "en";
+    const updatedSections = newSections.map((sec, i) => ({
+      ...sec,
+      orderKey: `a${i}`,
     }));
-    // Persist order keys
-    for (let i = 0; i < newSections.length; i++) {
-      const sec = newSections[i];
-      const key = `a${i}`;
-      if (sec.orderKey !== key) {
-        sec.orderKey = key;
-        WailsBridge.reorderSection(sec.id, key).catch((err) => {
-          toast.error(translate("store.reorderSaveError", lang), { description: String(err) });
-        });
+    set((state) => ({
+      cv: state.cv ? { ...state.cv, sections: updatedSections } : null,
+    }));
+    // Persist order keys sequentially to avoid database concurrency locks
+    try {
+      for (let i = 0; i < updatedSections.length; i++) {
+        const sec = updatedSections[i];
+        const orig = cv.sections?.find((s) => s.id === sec.id);
+        if (!orig || orig.orderKey !== sec.orderKey) {
+          await WailsBridge.reorderSection(sec.id, sec.orderKey);
+        }
       }
+    } catch (err) {
+      console.error("Failed to persist section order:", err);
+      toast.error(translate("store.reorderSaveError", lang), { description: String(err) });
     }
   },
 
@@ -283,7 +303,11 @@ export const useCVStore = create<CVStore>((set, get) => ({
     const entry = entries.find((e) => e.id === entryId);
     if (!entry) return;
 
-    const updatedEntry: CVEntry = { ...entry, ...fields };
+    const updatedEntry: CVEntry = {
+      ...entry,
+      ...fields,
+      meta: fields.meta !== undefined ? { ...(entry.meta || {}), ...fields.meta } : entry.meta,
+    };
 
     set((state) => ({
       cv: state.cv
@@ -328,41 +352,61 @@ export const useCVStore = create<CVStore>((set, get) => ({
 
   reorderEntries: async (sectionId, newEntries) => {
     const { cv } = get();
-    const lang = (cv?.language || "tr") as "tr" | "en";
+    if (!cv) return;
+    const lang = (cv.language || "tr") as "tr" | "en";
+    const updatedEntries = newEntries.map((ent, i) => ({
+      ...ent,
+      orderKey: `a${i}`,
+    }));
     set((state) => ({
       cv: state.cv
         ? {
             ...state.cv,
             sections: (state.cv.sections || []).map((s) =>
-              s.id === sectionId ? { ...s, entries: newEntries } : s
+              s.id === sectionId ? { ...s, entries: updatedEntries } : s
             ),
           }
         : null,
     }));
-    for (let i = 0; i < newEntries.length; i++) {
-      const ent = newEntries[i];
-      const key = `a${i}`;
-      if (ent.orderKey !== key) {
-        ent.orderKey = key;
-        WailsBridge.reorderEntry(ent.id, key).catch((err) => {
-          toast.error(translate("store.reorderSaveError", lang), { description: String(err) });
-        });
+    try {
+      for (let i = 0; i < updatedEntries.length; i++) {
+        const ent = updatedEntries[i];
+        const currentSec = cv.sections?.find((s) => s.id === sectionId);
+        const orig = currentSec?.entries?.find((e) => e.id === ent.id);
+        if (!orig || orig.orderKey !== ent.orderKey) {
+          await WailsBridge.reorderEntry(ent.id, ent.orderKey);
+        }
       }
+    } catch (err) {
+      console.error("Failed to persist entry order:", err);
+      toast.error(translate("store.reorderSaveError", lang), { description: String(err) });
     }
   },
 
-  translateField: async (key, fieldType, text, onTranslated) => {
+  translateField: async (
+    key,
+    fieldType,
+    text,
+    onTranslated,
+    targetLanguage = "en",
+    sourceLanguage = "auto"
+  ) => {
     if (!text.trim()) return;
     const { cv } = get();
     const lang = (cv?.language || "tr") as "tr" | "en";
+    const loadingState = targetLanguage === "tr" ? "translating-tr" : "translating-en";
     set((state) => ({
-      translationState: { ...state.translationState, [key]: "translating" },
+      translationState: {
+        ...state.translationState,
+        [key]: loadingState,
+        [`${key}-${targetLanguage}`]: "translating",
+      },
     }));
 
     try {
       const res = await WailsBridge.translateCV({
-        sourceLanguage: "tr",
-        targetLanguage: "en",
+        sourceLanguage,
+        targetLanguage,
         fieldType,
         text,
       });
@@ -371,19 +415,33 @@ export const useCVStore = create<CVStore>((set, get) => ({
         onTranslated(res.translatedText);
       }
       set((state) => ({
-        translationState: { ...state.translationState, [key]: "success" },
+        translationState: {
+          ...state.translationState,
+          [key]: "success",
+          [`${key}-${targetLanguage}`]: "idle",
+        },
         translationNote: res.note || null,
       }));
 
       setTimeout(() => {
         set((state) => ({
-          translationState: { ...state.translationState, [key]: "idle" },
+          translationState: {
+            ...state.translationState,
+            [key]: "idle",
+            [`${key}-en`]: "idle",
+            [`${key}-tr`]: "idle",
+          },
         }));
-      }, 2500);
+      }, 2000);
     } catch (err: any) {
       toast.error(translate("store.translationFailed", lang), { description: String(err) });
       set((state) => ({
-        translationState: { ...state.translationState, [key]: "error" },
+        translationState: {
+          ...state.translationState,
+          [key]: "error",
+          [`${key}-en`]: "idle",
+          [`${key}-tr`]: "idle",
+        },
         translationNote: err?.message || translate("store.translationFailedDesc", lang),
       }));
       setTimeout(() => {
