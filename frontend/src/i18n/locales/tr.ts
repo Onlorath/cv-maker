@@ -33,6 +33,8 @@ export const tr = {
     defaultTitle: "CV Maker — ATS Studio",
     toggleLanguage: "Dili Değiştir",
     settingsTitle: "Ayarlar & Tema",
+    undoTranslation: "Geri Al",
+    undoTranslationTooltip: "Son yapılan çeviriyi geri al ve önceki CV içeriğine dön",
   },
   sidebar: {
     general: "Genel",
@@ -309,6 +311,24 @@ export const tr = {
     custom: "ÖZEL BÖLÜM",
     summary: "ÖZET",
   },
+  translateModal: {
+    triggerBtn: "Tüm CV'yi Çevir",
+    title: "Tüm CV'yi AI ile Çevir",
+    subtitle: "Tek bir API isteğiyle tüm CV'nizi profesyonel ATS standartlarında çevirin.",
+    targetLangTitle: "Hedef Dil Seçimi",
+    langEnglish: "İngilizce (EN)",
+    langEnglishDesc: "Uluslararası standartlarda Amerikan/İngiliz ATS resume formatı",
+    langTurkish: "Türkçe (TR)",
+    langTurkishDesc: "Kurumsal ve akıcı Türkçe CV formatı",
+    modeTitle: "Çeviri Modu",
+    modeClone: "Yeni CV Kopyası Olarak Oluştur (Tavsiye Edilen)",
+    modeCloneDesc: "Mevcut CV'nizi korur, yanına yeni bir kopya oluşturup oraya çevirir.",
+    modeUpdate: "Mevcut CV'nin Üzerine Yaz",
+    modeUpdateDesc: "Doğrudan bu CV'nin içeriğini çevirir ve günceller.",
+    translatingText: "Tüm CV yapay zeka ile çevriliyor... Lütfen bekleyin.",
+    startBtn: "Çeviriyi Başlat (1 İstek)",
+    cancelBtn: "Vazgeç",
+  },
   store: {
     titleUpdateError: "Başlık güncellenemedi",
     sectionAddError: "Bölüm eklenemedi",
@@ -322,6 +342,8 @@ export const tr = {
     entryDeleteError: "İçerik silinemedi",
     translationFailed: "Çeviri Başarısız",
     translationFailedDesc: "Çeviri başarısız",
+    undoTranslationSuccess: "Çeviri geri alındı, önceki içerik geri yüklendi.",
+    undoTranslationError: "Geri alma işlemi başarısız oldu.",
   },
 };
 

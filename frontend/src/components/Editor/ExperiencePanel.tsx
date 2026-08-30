@@ -5,7 +5,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2, Plus, Briefcase, Link2, ExternalLink } from "lucide-react";
 import { useCVStore } from "../../store/useCVStore";
 import { useTranslation } from "../../i18n";
-import { AITranslateButton } from "../Common/AITranslateButton";
 import { getHref } from "../../lib/cvUtils";
 import type { CVEntry } from "../../types/cv";
 
@@ -76,12 +75,6 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ sectionId, entry, index
         <div>
           <div className="flex items-center justify-between min-h-[24px] mb-1.5">
             <label className="field-label m-0 truncate">{t("editor.experience.position")}</label>
-            <AITranslateButton
-              fieldKey={`pos-${entry.id}`}
-              fieldType="title"
-              text={entry.title || ""}
-              onTranslated={(val) => updateEntry(sectionId, entry.id, { title: val })}
-            />
           </div>
           <input
             type="text"
@@ -187,16 +180,10 @@ const ExperienceCard: React.FC<ExperienceCardProps> = ({ sectionId, entry, index
         </div>
       </div>
 
-      {/* Row 4: Description & Achievements with AI Translation */}
+      {/* Row 4: Description & Achievements */}
       <div className="space-y-1.5 pt-0.5">
         <div className="flex items-center justify-between min-h-[24px]">
           <label className="field-label m-0 truncate">{t("editor.experience.description")}</label>
-          <AITranslateButton
-            fieldKey={`desc-${entry.id}`}
-            fieldType="bullet"
-            text={entry.description || ""}
-            onTranslated={(val) => updateEntry(sectionId, entry.id, { description: val })}
-          />
         </div>
         <textarea
           rows={3}

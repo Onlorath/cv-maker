@@ -1,13 +1,10 @@
-import React, { useState } from "react";
-import { Check } from "lucide-react";
+import React from "react";
 import { useCVStore } from "../../store/useCVStore";
 import { useTranslation } from "../../i18n";
-import { AITranslateButton } from "../Common/AITranslateButton";
 
 export const SummaryPanel: React.FC = () => {
   const { cv, updateHeader } = useCVStore();
   const { t } = useTranslation();
-  const [successNote, setSuccessNote] = useState(false);
 
   if (!cv) return null;
 
@@ -23,18 +20,8 @@ export const SummaryPanel: React.FC = () => {
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between min-h-[24px]">
           <label className="field-label m-0">{t("editor.summary.fieldLabel")}</label>
-          <AITranslateButton
-            fieldKey="summary"
-            fieldType="summary"
-            text={cv.summary || ""}
-            onTranslated={(translated) => {
-              updateHeader({ summary: translated });
-              setSuccessNote(true);
-              setTimeout(() => setSuccessNote(false), 4000);
-            }}
-          />
         </div>
 
         <textarea
@@ -44,13 +31,6 @@ export const SummaryPanel: React.FC = () => {
           placeholder={t("editor.summary.placeholder")}
           className="native-textarea font-normal leading-relaxed"
         />
-
-        {successNote && (
-          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--seal)] mt-2">
-            <Check className="w-3.5 h-3.5" />
-            <span>{t("editor.summary.successNote")}</span>
-          </div>
-        )}
       </div>
     </section>
   );

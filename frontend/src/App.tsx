@@ -7,6 +7,7 @@ import { CVEditorPane } from "./components/Editor/CVEditorPane";
 import { PreviewPane } from "./components/Preview/PreviewPane";
 import { AddSectionModal } from "./components/Editor/AddSectionModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { TranslateModal } from "./components/TranslateModal";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "./i18n";
 
@@ -16,6 +17,7 @@ export const App: React.FC = () => {
   const isLoading = useCVStore((state) => state.isLoading);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
+  const [isTranslateOpen, setIsTranslateOpen] = useState(false);
 
   useEffect(() => {
     loadCV();
@@ -74,7 +76,10 @@ export const App: React.FC = () => {
       {/* Centered Desktop Window Container */}
       <div className="app-window animate-fade-in">
         {/* macOS Titlebar */}
-        <Titlebar onOpenSettings={() => setIsSettingsOpen(true)} />
+        <Titlebar
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenTranslate={() => setIsTranslateOpen(true)}
+        />
 
         {/* 3-Column Workspace Grid */}
         <div className="workspace-grid">
@@ -99,6 +104,12 @@ export const App: React.FC = () => {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Full CV AI Translate Modal */}
+      <TranslateModal
+        isOpen={isTranslateOpen}
+        onClose={() => setIsTranslateOpen(false)}
       />
     </>
   );

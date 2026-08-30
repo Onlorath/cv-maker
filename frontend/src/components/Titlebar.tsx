@@ -1,14 +1,15 @@
 import React from "react";
-import { Settings } from "lucide-react";
+import { Settings, Sparkles, Undo2 } from "lucide-react";
 import { useCVStore } from "../store/useCVStore";
 import { useTranslation } from "../i18n";
 
 interface TitlebarProps {
   onOpenSettings: () => void;
+  onOpenTranslate: () => void;
 }
 
-export const Titlebar: React.FC<TitlebarProps> = ({ onOpenSettings }) => {
-  const { cv, updateHeader } = useCVStore();
+export const Titlebar: React.FC<TitlebarProps> = ({ onOpenSettings, onOpenTranslate }) => {
+  const { cv, updateHeader, lastTranslationSnapshot, undoTranslation } = useCVStore();
   const { t } = useTranslation();
 
   const toggleLanguage = () => {
@@ -34,9 +35,31 @@ export const Titlebar: React.FC<TitlebarProps> = ({ onOpenSettings }) => {
 
       {/* Right Controls — must be non-draggable */}
       <div
-        className="flex items-center gap-1.5 shrink-0"
+        className="flex items-center gap-2 shrink-0"
         style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       >
+        {lastTranslationSnapshot && (
+          <button
+            type="button"
+            onClick={undoTranslation}
+            className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-full px-2.5 py-0.5 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer animate-fade-in"
+            title={t("titlebar.undoTranslationTooltip")}
+          >
+            <Undo2 className="w-3 h-3 text-amber-500" />
+            <span>{t("titlebar.undoTranslation")}</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={onOpenTranslate}
+          className="text-[11px] font-semibold text-[var(--accent)] bg-[var(--accent-soft)] hover:bg-[var(--accent-soft-strong)] border border-[var(--accent)]/30 rounded-full px-2.5 py-0.5 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+          title={t("translateModal.triggerBtn")}
+        >
+          <Sparkles className="w-3 h-3 text-[var(--accent)]" />
+          <span>{t("translateModal.triggerBtn")}</span>
+        </button>
+
         <button
           type="button"
           onClick={toggleLanguage}

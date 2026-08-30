@@ -20,6 +20,7 @@ declare global {
           DeleteEntry: (id: string) => Promise<void>;
           ReorderEntry: (id: string, newOrderKey: string) => Promise<void>;
           TranslateCV: (req: { sourceLanguage: string; targetLanguage: string; fieldType: string; text: string }) => Promise<{ translatedText: string; note: string }>;
+          TranslateFullCV: (cv: CVData, targetLanguage: string) => Promise<CVData>;
           GetGeminiAPIKey: () => Promise<string>;
           SetGeminiAPIKey: (key: string) => Promise<void>;
           DeleteGeminiAPIKey: () => Promise<void>;
@@ -301,6 +302,31 @@ export const WailsBridge = {
           ? `[TR CV Çevirisi] ${req.text}`
           : `[EN Resume Translation] ${req.text}`,
       note: "Development simulation",
+    };
+  },
+
+  async translateFullCV(cv: CVData, targetLanguage: string): Promise<CVData> {
+    if (this.isWailsAvailable()) {
+      return await window.go!.main!.App!.TranslateFullCV(cv, targetLanguage);
+    }
+    // Fallback simulate full CV translation in browser dev mode
+    await new Promise((r) => setTimeout(r, 1200));
+    const prefix = targetLanguage === "tr" ? "[TR] " : "[EN] ";
+    return {
+      ...cv,
+      language: (targetLanguage === "tr" ? "tr" : "en") as "tr" | "en",
+      jobTitle: cv.jobTitle ? `${prefix}${cv.jobTitle}` : "",
+      summary: cv.summary ? `${prefix}${cv.summary}` : "",
+      sections: (cv.sections || []).map((s) => ({
+        ...s,
+        title: s.title ? `${prefix}${s.title}` : "",
+        entries: (s.entries || []).map((e) => ({
+          ...e,
+          title: e.title ? `${prefix}${e.title}` : "",
+          subtitle: e.subtitle ? `${prefix}${e.subtitle}` : "",
+          description: e.description ? `${prefix}${e.description}` : "",
+        })),
+      })),
     };
   },
 

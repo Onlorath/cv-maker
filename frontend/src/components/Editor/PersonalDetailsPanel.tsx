@@ -3,7 +3,6 @@ import { User, Plus, Trash2 } from "lucide-react";
 import { useCVStore } from "../../store/useCVStore";
 import { useTranslation } from "../../i18n";
 import { resizeImage } from "../../lib/cvUtils";
-import { AITranslateButton } from "../Common/AITranslateButton";
 
 export const PersonalDetailsPanel: React.FC = () => {
   const { cv, updateHeader } = useCVStore();
@@ -100,12 +99,6 @@ export const PersonalDetailsPanel: React.FC = () => {
           <div>
             <div className="flex items-center justify-between min-h-[24px] mb-1.5">
               <label className="field-label m-0 truncate">{t("editor.personal.jobTitle")}</label>
-              <AITranslateButton
-                fieldKey="jobTitle"
-                fieldType="title"
-                text={cv.jobTitle || ""}
-                onTranslated={(val) => updateHeader({ jobTitle: val })}
-              />
             </div>
             <input
               type="text"

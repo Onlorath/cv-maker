@@ -99,6 +99,12 @@ func (a *App) TranslateCV(req translate.TranslateRequest) (translate.TranslateRe
 	return translator.TranslateCV(a.ctx, req)
 }
 
+func (a *App) TranslateFullCV(c *cv.CV, targetLanguage string) (*cv.CV, error) {
+	key, _ := a.settingsService.GetGeminiAPIKey(a.ctx)
+	translator := translate.NewGeminiTranslator(key)
+	return translator.TranslateFullCV(a.ctx, c, targetLanguage)
+}
+
 // Settings Methods
 func (a *App) GetGeminiAPIKey() (string, error) {
 	return a.settingsService.GetGeminiAPIKey(a.ctx)

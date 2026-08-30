@@ -43,6 +43,14 @@ interface CVStore {
   reorderEntries: (sectionId: string, newEntries: CVEntry[]) => Promise<void>;
 
   // AI Translation Action
+  isTranslatingFullCV: boolean;
+  lastTranslationSnapshot: {
+    originalCV: CVData;
+    mode: "clone" | "update";
+    createdCloneId?: string;
+  } | null;
+  translateFullCV: (targetLanguage: "en" | "tr", mode: "clone" | "update") => Promise<void>;
+  undoTranslation: () => Promise<void>;
   translateField: (
     key: string,
     fieldType: "summary" | "bullet" | "title",
@@ -120,6 +128,7 @@ export const useCVStore = create<CVStore>((set, get) => ({
   isCompactMode: false,
   translationState: {},
   translationNote: null,
+  lastTranslationSnapshot: null,
   theme: getInitialTheme(),
 
   setTheme: (theme: "light" | "dark") => {
@@ -380,6 +389,121 @@ export const useCVStore = create<CVStore>((set, get) => ({
     } catch (err) {
       console.error("Failed to persist entry order:", err);
       toast.error(translate("store.reorderSaveError", lang), { description: String(err) });
+    }
+  },
+
+  isTranslatingFullCV: false,
+
+  translateFullCV: async (targetLanguage, mode) => {
+    const { cv, loadCV } = get();
+    if (!cv) return;
+    const snapshotOriginalCV = JSON.parse(JSON.stringify(cv)) as CVData;
+    set({ isTranslatingFullCV: true });
+
+    try {
+      const translated = await WailsBridge.translateFullCV(cv, targetLanguage);
+      if (!translated) throw new Error("Çeviri yanıtı alınamadı");
+
+      if (mode === "clone") {
+        const titleSuffix = targetLanguage === "en" ? " (EN)" : " (TR)";
+        const baseTitle = cv.title.replace(/\s*\((EN|TR)\)$/i, "");
+        const newTitle = `${baseTitle}${titleSuffix}`;
+
+        const createdCV = await WailsBridge.createCV({
+          title: newTitle,
+          language: targetLanguage,
+          fullName: cv.fullName,
+          email: cv.email,
+        });
+
+        if (createdCV) {
+          const fullClone: CVData = {
+            ...translated,
+            id: createdCV.id,
+            title: newTitle,
+            language: targetLanguage,
+            sections: (translated.sections || []).map((sec) => ({
+              ...sec,
+              id: sec.id,
+              cvId: createdCV.id,
+              entries: (sec.entries || []).map((ent) => ({
+                ...ent,
+                sectionId: sec.id,
+              })),
+            })),
+          };
+          await WailsBridge.updateCV(fullClone);
+          await loadCV(createdCV.id);
+          set({
+            cv: fullClone,
+            isTranslatingFullCV: false,
+            previewLanguage: targetLanguage,
+            lastTranslationSnapshot: {
+              originalCV: snapshotOriginalCV,
+              mode: "clone",
+              createdCloneId: createdCV.id,
+            },
+          });
+          toast.success(
+            targetLanguage === "en"
+              ? "Full CV translated & created as a new copy!"
+              : "Tüm CV çevrildi ve yeni kopya olarak oluşturuldu!"
+          );
+        }
+      } else {
+        const updated: CVData = {
+          ...translated,
+          id: cv.id,
+          language: targetLanguage,
+        };
+        await WailsBridge.updateCV(updated);
+        set({
+          cv: updated,
+          isTranslatingFullCV: false,
+          previewLanguage: targetLanguage,
+          lastTranslationSnapshot: {
+            originalCV: snapshotOriginalCV,
+            mode: "update",
+          },
+        });
+        toast.success(
+          targetLanguage === "en"
+            ? "Full CV translated successfully!"
+            : "Tüm CV başarıyla çevrildi!"
+        );
+      }
+    } catch (err: any) {
+      console.error("Full CV translation failed:", err);
+      set({ isTranslatingFullCV: false });
+      toast.error(
+        targetLanguage === "en" ? "Full CV translation failed" : "Tüm CV çevirisi başarısız oldu",
+        { description: String(err?.message || err) }
+      );
+      throw err;
+    }
+  },
+
+  undoTranslation: async () => {
+    const { lastTranslationSnapshot, loadCV } = get();
+    if (!lastTranslationSnapshot) return;
+    const { originalCV, mode, createdCloneId } = lastTranslationSnapshot;
+    const lang = (originalCV.language || "tr") as "tr" | "en";
+
+    try {
+      if (mode === "clone" && createdCloneId) {
+        await WailsBridge.deleteCV(createdCloneId);
+        await loadCV(originalCV.id);
+      } else {
+        await WailsBridge.updateCV(originalCV);
+        set({ cv: originalCV, previewLanguage: originalCV.language || "tr" });
+      }
+      set({ lastTranslationSnapshot: null });
+      toast.success(translate("store.undoTranslationSuccess", lang));
+    } catch (err: any) {
+      console.error("Failed to undo translation:", err);
+      toast.error(translate("store.undoTranslationError", lang), {
+        description: String(err?.message || err),
+      });
     }
   },
 

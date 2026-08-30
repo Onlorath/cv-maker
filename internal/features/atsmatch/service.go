@@ -31,6 +31,29 @@ func isRateLimitError(err error) bool {
 		strings.Contains(errStr, "rate limit")
 }
 
+// cleanErrorMessage sanitizes error strings, stripping API keys and providing clean user-facing explanations.
+func cleanErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	errStr := err.Error()
+	if idx := strings.Index(errStr, "key="); idx != -1 {
+		endIdx := strings.IndexAny(errStr[idx:], " \t\n\r\"'&")
+		if endIdx != -1 {
+			errStr = errStr[:idx] + "key=[PROTECTED]" + errStr[idx+endIdx:]
+		} else {
+			errStr = errStr[:idx] + "key=[PROTECTED]"
+		}
+	}
+	if errors.Is(err, context.DeadlineExceeded) || strings.Contains(strings.ToLower(errStr), "deadline") || strings.Contains(strings.ToLower(errStr), "timeout") {
+		return "Yapay zeka yanıt süresi zaman aşımına uğradı (Timeout). Lütfen tekrar deneyin."
+	}
+	if isRateLimitError(err) {
+		return "Yapay zeka istek limiti aşıldı (Rate Limit), lütfen biraz sonra tekrar deneyin."
+	}
+	return errStr
+}
+
 // buildPrompt, JD ve CV JSON'ını Gemini'ye gönderir.
 func buildPrompt(req MatchRequest) string {
 	return fmt.Sprintf(`You are an expert technical recruiter comparing a candidate's CV against a job description.
@@ -100,8 +123,12 @@ func NewGeminiMatcher(apiKey string) Matcher {
 	return &geminiMatcher{
 		apiKey: apiKey,
 		models: []string{
-			"gemini-3.6-flash",
+			"gemini-3.7-flash",
 			"gemini-3.1-flash-lite",
+			"gemini-3.6-flash",
+			"gemini-2.5-flash-lite",
+			"gemini-2.0-flash-lite",
+			"gemini-1.5-flash",
 		},
 	}
 }
@@ -111,8 +138,8 @@ func (g *geminiMatcher) Match(ctx context.Context, req MatchRequest) (MatchRespo
 		return MatchResponse{}, fmt.Errorf("gemini API anahtarı ayarlanmamış")
 	}
 
-	// 30 saniyelik kesin zaman aşımı (timeout) ekliyoruz. ATS daha uzun sürdüğü için 30 saniye.
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// 45 saniyelik zaman aşımı (timeout)
+	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
@@ -196,11 +223,5 @@ func (g *geminiMatcher) Match(ctx context.Context, req MatchRequest) (MatchRespo
 		return parsed, nil
 	}
 
-	slog.ErrorContext(ctx, "all gemini ats matching models failed", "lastError", lastErr)
-
-	if isRateLimitError(lastErr) {
-		return MatchResponse{}, fmt.Errorf("yapay zeka istek limiti aşıldı (Rate Limit), lütfen birkaç saniye sonra tekrar deneyin")
-	}
-
-	return MatchResponse{}, fmt.Errorf("ats eşleştirme analizi tamamlanamadı: %w", lastErr)
+	return MatchResponse{}, fmt.Errorf("ats eşleştirme analizi tamamlanamadı: %s", cleanErrorMessage(lastErr))
 }

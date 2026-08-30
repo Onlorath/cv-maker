@@ -3,12 +3,12 @@
 # Uygulamayı tamamen kapatır, sıfırdan .app paketi olarak derler ve arkasında terminal olmadan başlatır.
 dev:
 	@echo "🛑 Mevcut uygulama kapatılıyor..."
-	@pkill -f "cv_maker" || true
-	@echo "🧹 Önceki kalıntılar (Detritus) temizleniyor..."
-	@find . -type f -name ".DS_Store" -exec rm -f {} \; || true
-	@find . -type f -name "Icon?" -exec rm -f {} \; || true
-	@xattr -cr . 2>/dev/null || true
+	@osascript -e 'quit app "cv_maker"' 2>/dev/null || true
+	@pkill -f "build/bin/cv_maker.app" 2>/dev/null || true
+	@echo "🧹 Önceki derleme temizleniyor..."
 	@rm -rf build/bin
+	@mkdir -p build/bin
+	@touch build/.nosync 2>/dev/null || true
 	@echo "🔨 Uygulama sıfırdan derleniyor (Wails Build)..."
 	@~/go/bin/wails build -clean || (echo "⚠️ Wails imzalama hatası algılandı, paket manuel temizlenip imzalanıyor..." && xattr -cr build/bin/cv_maker.app 2>/dev/null && codesign --force --deep --sign - build/bin/cv_maker.app) || (echo "❌ Derleme tamamen başarısız oldu!" && exit 1)
 	@echo "🚀 Uygulama başlatılıyor..."

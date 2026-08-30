@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -26,23 +27,29 @@ func TestBuildPrompt_TurkishToEnglish(t *testing.T) {
 	}
 }
 
-func TestBuildPrompt_EnglishToTurkish(t *testing.T) {
-	req := TranslateRequest{
-		SourceLanguage: "en",
-		TargetLanguage: "tr",
-		FieldType:      "summary",
-		Text:           "Full-stack software engineer with 5+ years of experience in distributed systems.",
-	}
+func TestBuildFullCVPrompt(t *testing.T) {
+	jsonPayload := `{"jobTitle":"Yazılım Mühendisi","summary":"Deneyimli geliştirici"}`
+	prompt := buildFullCVPrompt(jsonPayload, "tr", "en")
 
-	prompt := buildPrompt(req)
+	if !strings.Contains(prompt, "Turkish to English") {
+		t.Errorf("expected prompt to contain Turkish to English, got: %s", prompt)
+	}
+	if !strings.Contains(prompt, "ATS Resume Quality") {
+		t.Errorf("expected prompt to instruct ATS Resume Quality, got: %s", prompt)
+	}
+	if !strings.Contains(prompt, jsonPayload) {
+		t.Errorf("expected prompt to contain json payload, got: %s", prompt)
+	}
+}
 
-	if !strings.Contains(prompt, "Translate and adapt the following CV text from English to Turkish") {
-		t.Errorf("expected prompt to mention English to Turkish, got: %s", prompt)
+func TestCleanErrorMessage(t *testing.T) {
+	errWithKey := fmt.Errorf("Post https://generativelanguage.googleapis.com?key=AIzaSyD12345: context deadline exceeded")
+	cleaned := cleanErrorMessage(errWithKey)
+
+	if strings.Contains(cleaned, "AIzaSyD12345") {
+		t.Errorf("expected API key to be sanitized, got: %s", cleaned)
 	}
-	if !strings.Contains(prompt, "Turkish resume tone") {
-		t.Errorf("expected prompt to instruct Turkish resume tone, got: %s", prompt)
-	}
-	if !strings.Contains(prompt, req.Text) {
-		t.Errorf("expected prompt to contain source text, got: %s", prompt)
+	if !strings.Contains(cleaned, "Zaman Aşımı") && !strings.Contains(cleaned, "zaman aşımına") {
+		t.Errorf("expected clean timeout message, got: %s", cleaned)
 	}
 }

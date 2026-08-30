@@ -38,6 +38,8 @@ export function SetGeminiAPIKey(arg1:string):Promise<void>;
 
 export function TranslateCV(arg1:translate.TranslateRequest):Promise<translate.TranslateResponse>;
 
+export function TranslateFullCV(arg1:cv.CV,arg2:string):Promise<cv.CV>;
+
 export function UpdateCV(arg1:cv.CV):Promise<void>;
 
 export function UpdateEntry(arg1:cv.Entry):Promise<void>;

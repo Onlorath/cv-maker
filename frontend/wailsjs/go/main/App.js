@@ -70,6 +70,10 @@ export function TranslateCV(arg1) {
   return window['go']['main']['App']['TranslateCV'](arg1);
 }
 
+export function TranslateFullCV(arg1, arg2) {
+  return window['go']['main']['App']['TranslateFullCV'](arg1, arg2);
+}
+
 export function UpdateCV(arg1) {
   return window['go']['main']['App']['UpdateCV'](arg1);
 }
