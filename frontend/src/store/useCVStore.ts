@@ -548,14 +548,13 @@ export const useCVStore = create<CVStore>((set, get) => ({
       }));
 
       setTimeout(() => {
-        set((state) => ({
-          translationState: {
-            ...state.translationState,
-            [key]: "idle",
-            [`${key}-en`]: "idle",
-            [`${key}-tr`]: "idle",
-          },
-        }));
+        set((state) => {
+          const next = { ...state.translationState };
+          delete next[key];
+          delete next[`${key}-en`];
+          delete next[`${key}-tr`];
+          return { translationState: next };
+        });
       }, 2000);
     } catch (err: any) {
       toast.error(translate("store.translationFailed", lang), { description: String(err) });
@@ -569,9 +568,13 @@ export const useCVStore = create<CVStore>((set, get) => ({
         translationNote: err?.message || translate("store.translationFailedDesc", lang),
       }));
       setTimeout(() => {
-        set((state) => ({
-          translationState: { ...state.translationState, [key]: "idle" },
-        }));
+        set((state) => {
+          const next = { ...state.translationState };
+          delete next[key];
+          delete next[`${key}-en`];
+          delete next[`${key}-tr`];
+          return { translationState: next };
+        });
       }, 3000);
     }
   },
@@ -584,8 +587,11 @@ export const useCVStore = create<CVStore>((set, get) => ({
     set((state) => ({
       previewZoom: typeof zoom === "function" ? zoom(state.previewZoom) : zoom,
     })),
-  toggleLanguage: () =>
-    set((state) => ({
-      previewLanguage: state.previewLanguage === "tr" ? "en" : "tr",
-    })),
+  toggleLanguage: () => {
+    const { cv, updateHeader } = get();
+    if (!cv) return;
+    const nextLang = cv.language === "tr" ? "en" : "tr";
+    updateHeader({ language: nextLang });
+    set({ previewLanguage: nextLang });
+  },
 }));

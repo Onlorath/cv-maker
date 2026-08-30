@@ -76,6 +76,13 @@ export function formatDateRange(entry: CVEntry, presentLabel: string): string {
   return start || end;
 }
 
+export function sortByOrderKey<T extends { orderKey?: string }>(items?: T[]): T[] {
+  if (!items || items.length === 0) return [];
+  return [...items].sort((a, b) =>
+    (a.orderKey || "").localeCompare(b.orderKey || "")
+  );
+}
+
 // Simple generic debounce function
 export function debounce<T extends (...args: any[]) => any>(
   func: T,

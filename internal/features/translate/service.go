@@ -3,58 +3,18 @@ package translate
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"strings"
 	"time"
 
 	"cvmaker/internal/features/cv"
+	"cvmaker/internal/platform/gemini"
 
 	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
-// isRateLimitError checks if an error represents an HTTP 429 Too Many Requests or quota exhaustion.
-func isRateLimitError(err error) bool {
-	if err == nil {
-		return false
-	}
-	var gErr *googleapi.Error
-	if errors.As(err, &gErr) && gErr.Code == http.StatusTooManyRequests {
-		return true
-	}
-	errStr := strings.ToLower(err.Error())
-	return strings.Contains(errStr, "429") ||
-		strings.Contains(errStr, "resource_exhausted") ||
-		strings.Contains(errStr, "quota") ||
-		strings.Contains(errStr, "rate limit")
-}
-
-// cleanErrorMessage sanitizes error strings, stripping API keys and providing clean user-facing explanations.
-func cleanErrorMessage(err error) string {
-	if err == nil {
-		return ""
-	}
-	errStr := err.Error()
-	if idx := strings.Index(errStr, "key="); idx != -1 {
-		endIdx := strings.IndexAny(errStr[idx:], " \t\n\r\"'&")
-		if endIdx != -1 {
-			errStr = errStr[:idx] + "key=[PROTECTED]" + errStr[idx+endIdx:]
-		} else {
-			errStr = errStr[:idx] + "key=[PROTECTED]"
-		}
-	}
-	if errors.Is(err, context.DeadlineExceeded) || strings.Contains(strings.ToLower(errStr), "deadline") || strings.Contains(strings.ToLower(errStr), "timeout") {
-		return "Yapay zeka yanıt süresi zaman aşımına uğradı (Timeout). Lütfen tekrar deneyin."
-	}
-	if isRateLimitError(err) {
-		return "Yapay zeka istek limiti aşıldı (Rate Limit), lütfen biraz sonra tekrar deneyin."
-	}
-	return errStr
-}
 
 // Translator abstracts translation and ATS localization services.
 type Translator interface {
@@ -229,7 +189,7 @@ func (g *geminiTranslator) TranslateCV(ctx context.Context, req TranslateRequest
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create gemini client", "error", err)
-		return TranslateResponse{}, fmt.Errorf("gemini istemcisi başlatılamadı: %s", cleanErrorMessage(err))
+		return TranslateResponse{}, fmt.Errorf("gemini istemcisi başlatılamadı: %s", gemini.CleanErrorMessage(err))
 	}
 	defer client.Close()
 
@@ -253,7 +213,7 @@ func (g *geminiTranslator) TranslateCV(ctx context.Context, req TranslateRequest
 			slog.WarnContext(ctx, "gemini translation failed, attempting fallback",
 				"model", modelName,
 				"attempt", i+1,
-				"error", cleanErrorMessage(err),
+				"error", gemini.CleanErrorMessage(err),
 			)
 			continue
 		}
@@ -286,7 +246,7 @@ func (g *geminiTranslator) TranslateCV(ctx context.Context, req TranslateRequest
 	}
 
 	slog.ErrorContext(ctx, "all gemini translation models failed", "lastError", lastErr)
-	return TranslateResponse{}, fmt.Errorf("çeviri işlemi tamamlanamadı: %s", cleanErrorMessage(lastErr))
+	return TranslateResponse{}, fmt.Errorf("çeviri işlemi tamamlanamadı: %s", gemini.CleanErrorMessage(lastErr))
 }
 
 func (g *geminiTranslator) TranslateFullCV(ctx context.Context, c *cv.CV, targetLanguage string) (*cv.CV, error) {
@@ -304,7 +264,7 @@ func (g *geminiTranslator) TranslateFullCV(ctx context.Context, c *cv.CV, target
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to create gemini client for full cv translation", "error", err)
-		return nil, fmt.Errorf("gemini istemcisi başlatılamadı: %s", cleanErrorMessage(err))
+		return nil, fmt.Errorf("gemini istemcisi başlatılamadı: %s", gemini.CleanErrorMessage(err))
 	}
 	defer client.Close()
 
@@ -359,7 +319,7 @@ func (g *geminiTranslator) TranslateFullCV(ctx context.Context, c *cv.CV, target
 			slog.WarnContext(ctx, "gemini full cv translation attempt failed",
 				"model", modelName,
 				"attempt", i+1,
-				"error", cleanErrorMessage(err),
+				"error", gemini.CleanErrorMessage(err),
 			)
 			continue
 		}
@@ -432,5 +392,5 @@ func (g *geminiTranslator) TranslateFullCV(ctx context.Context, c *cv.CV, target
 		return &resCV, nil
 	}
 
-	return nil, fmt.Errorf("tüm CV çevirisi tamamlanamadı: %s", cleanErrorMessage(lastErr))
+	return nil, fmt.Errorf("tüm CV çevirisi tamamlanamadı: %s", gemini.CleanErrorMessage(lastErr))
 }

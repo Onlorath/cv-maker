@@ -36,6 +36,7 @@ import { pdf } from "@react-pdf/renderer";
 import { useCVStore } from "../store/useCVStore";
 import { ATSClassicTemplate } from "../templates/ATSClassicTemplate";
 import { WailsBridge } from "../lib/wailsBridge";
+import { sortByOrderKey } from "../lib/cvUtils";
 import { useTranslation, getSectionDisplayTitle } from "../i18n";
 import { toast } from "sonner";
 import type { CVSection } from "../types/cv";
@@ -158,9 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
   const sections = rawSections || [];
   const [isExporting, setIsExporting] = useState(false);
 
-  const sortedSections = [...sections].sort((a, b) =>
-    (a.orderKey || "").localeCompare(b.orderKey || "")
-  );
+  const sortedSections = sortByOrderKey(sections);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

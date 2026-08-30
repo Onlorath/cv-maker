@@ -12,6 +12,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 
+	"cvmaker/internal/features/atsscore"
 	"cvmaker/internal/features/cv"
 	"cvmaker/internal/features/settings"
 	"cvmaker/internal/platform/db"
@@ -49,8 +50,9 @@ func main() {
 	cvRepo := cv.NewRepository(dbConn)
 	cvService := cv.NewService(cvRepo)
 	settingsService := settings.NewService()
+	atsService := atsscore.NewService()
 
-	app := NewApp(cvService, settingsService)
+	app := NewApp(cvService, settingsService, atsService)
 
 	err = wails.Run(&options.App{
 		Title:             "CV Maker — Onlorath ATS Studio",

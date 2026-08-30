@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import type { CVData } from "../../types/cv";
 import { useTranslation, getSectionDisplayTitle } from "../../i18n";
 import { useCVStore } from "../../store/useCVStore";
-import { cleanUrlDisplay, getHref, parseBullets, formatDateRange } from "../../lib/cvUtils";
+import { cleanUrlDisplay, getHref, parseBullets, formatDateRange, sortByOrderKey } from "../../lib/cvUtils";
 
 interface ResumeSheetProps {
   cv: CVData;
@@ -123,15 +123,10 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
       }
 
       // 3. Dynamic Sections
-      const sortedSections = [...(cv.sections || [])].sort((a, b) =>
-        (a.orderKey || "").localeCompare(b.orderKey || "")
-      );
+      const sortedSections = sortByOrderKey(cv.sections);
 
       for (const section of sortedSections) {
-        const entries = section.entries || [];
-        const sortedEntries = [...entries].sort((a, b) =>
-          (a.orderKey || "").localeCompare(b.orderKey || "")
-        );
+        const sortedEntries = sortByOrderKey(section.entries);
 
         // Section Title
         const secTitleHeight = isCompact ? 21 : 27;

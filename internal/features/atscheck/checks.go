@@ -28,18 +28,24 @@ var (
 	}
 )
 
+func localizedMsg(c *cv.CV, trMsg, enMsg string) string {
+	if c != nil && strings.EqualFold(c.Language, "en") {
+		return enMsg
+	}
+	return trMsg
+}
+
 // checkFullName: ad-soyad boşsa CV'nin en temel kimliği eksik demektir.
 func checkFullName(c *cv.CV) []Finding {
 	if strings.TrimSpace(c.FullName) == "" {
-		msg := "Ad soyad boş. Bu alan olmadan CV'nin kimliği ATS'te tanımlanamaz."
-		if strings.EqualFold(c.Language, "en") {
-			msg = "Full name is missing. Without this field, the resume identity cannot be established in ATS."
-		}
 		return []Finding{{
 			Code:     "missing_full_name",
 			Severity: SeverityCritical,
 			Field:    "fullName",
-			Message:  msg,
+			Message: localizedMsg(c,
+				"Ad soyad boş. Bu alan olmadan CV'nin kimliği ATS'te tanımlanamaz.",
+				"Full name is missing. Without this field, the resume identity cannot be established in ATS.",
+			),
 		}}
 	}
 	return nil
@@ -49,29 +55,26 @@ func checkFullName(c *cv.CV) []Finding {
 // bulacağı ana kanal kayboluyor demektir.
 func checkEmail(c *cv.CV) []Finding {
 	email := strings.TrimSpace(c.Email)
-	isEn := strings.EqualFold(c.Language, "en")
 	if email == "" {
-		msg := "E-posta adresi boş. Çoğu ATS iletişim bilgisini zorunlu alan olarak bekler."
-		if isEn {
-			msg = "Email address is missing. Most ATS systems require contact information as a mandatory field."
-		}
 		return []Finding{{
 			Code:     "missing_email",
 			Severity: SeverityHigh,
 			Field:    "email",
-			Message:  msg,
+			Message: localizedMsg(c,
+				"E-posta adresi boş. Çoğu ATS iletişim bilgisini zorunlu alan olarak bekler.",
+				"Email address is missing. Most ATS systems require contact information as a mandatory field.",
+			),
 		}}
 	}
 	if !emailRe.MatchString(email) {
-		msg := fmt.Sprintf("E-posta formatı geçersiz görünüyor: %q", email)
-		if isEn {
-			msg = fmt.Sprintf("Email format appears invalid: %q", email)
-		}
 		return []Finding{{
 			Code:     "invalid_email_format",
 			Severity: SeverityHigh,
 			Field:    "email",
-			Message:  msg,
+			Message: localizedMsg(c,
+				fmt.Sprintf("E-posta formatı geçersiz görünüyor: %q", email),
+				fmt.Sprintf("Email format appears invalid: %q", email),
+			),
 		}}
 	}
 	return nil
@@ -80,30 +83,27 @@ func checkEmail(c *cv.CV) []Finding {
 // checkPhone: telefon zorunlu değil ama boşsa ya da rakam içermiyorsa uyar.
 func checkPhone(c *cv.CV) []Finding {
 	phone := strings.TrimSpace(c.Phone)
-	isEn := strings.EqualFold(c.Language, "en")
 	if phone == "" {
-		msg := "Telefon numarası boş. Zorunlu değil ama doldurulması önerilir."
-		if isEn {
-			msg = "Phone number is empty. Not mandatory, but recommended."
-		}
 		return []Finding{{
 			Code:     "missing_phone",
 			Severity: SeverityMedium,
 			Field:    "phone",
-			Message:  msg,
+			Message: localizedMsg(c,
+				"Telefon numarası boş. Zorunlu değil ama doldurulması önerilir.",
+				"Phone number is empty. Not mandatory, but recommended.",
+			),
 		}}
 	}
 	digitCount := len(phoneDigitsRe.FindAllString(phone, -1))
 	if digitCount < 7 {
-		msg := fmt.Sprintf("Telefon numarası çok az rakam içeriyor (%d rakam), kontrol et: %q", digitCount, phone)
-		if isEn {
-			msg = fmt.Sprintf("Phone number contains too few digits (%d digits), please verify: %q", digitCount, phone)
-		}
 		return []Finding{{
 			Code:     "suspicious_phone_format",
 			Severity: SeverityMedium,
 			Field:    "phone",
-			Message:  msg,
+			Message: localizedMsg(c,
+				fmt.Sprintf("Telefon numarası çok az rakam içeriyor (%d rakam), kontrol et: %q", digitCount, phone),
+				fmt.Sprintf("Phone number contains too few digits (%d digits), please verify: %q", digitCount, phone),
+			),
 		}}
 	}
 	return nil
@@ -113,15 +113,14 @@ func checkPhone(c *cv.CV) []Finding {
 // saniyede göreceği en önemli alan boş kalıyor demektir — düşük önem.
 func checkSummaryPresent(c *cv.CV) []Finding {
 	if strings.TrimSpace(c.Summary) == "" {
-		msg := "Özet bölümü boş. Zorunlu değil ama doldurulması güçlü önerilir."
-		if strings.EqualFold(c.Language, "en") {
-			msg = "Professional summary is empty. Not mandatory, but strongly recommended."
-		}
 		return []Finding{{
 			Code:     "missing_summary",
 			Severity: SeverityLow,
 			Field:    "summary",
-			Message:  msg,
+			Message: localizedMsg(c,
+				"Özet bölümü boş. Zorunlu değil ama doldurulması güçlü önerilir.",
+				"Professional summary is empty. Not mandatory, but strongly recommended.",
+			),
 		}}
 	}
 	return nil
@@ -131,18 +130,16 @@ func checkSummaryPresent(c *cv.CV) []Finding {
 // kullanıcı section'ı ekleyip doldurmayı unutmuş olabilir.
 func checkSectionsNotEmpty(c *cv.CV) []Finding {
 	var findings []Finding
-	isEn := strings.EqualFold(c.Language, "en")
 	for i, s := range c.Sections {
 		if len(s.Entries) == 0 {
-			msg := fmt.Sprintf("%q bölümü eklenmiş ama içi boş.", s.Title)
-			if isEn {
-				msg = fmt.Sprintf("%q section has been added but contains no entries.", s.Title)
-			}
 			findings = append(findings, Finding{
 				Code:     "empty_section",
 				Severity: SeverityMedium,
 				Field:    fmt.Sprintf("sections[%d]", i),
-				Message:  msg,
+				Message: localizedMsg(c,
+					fmt.Sprintf("%q bölümü eklenmiş ama içi boş.", s.Title),
+					fmt.Sprintf("%q section has been added but contains no entries.", s.Title),
+				),
 			})
 		}
 	}
@@ -161,7 +158,6 @@ func checkDateConsistency(c *cv.CV) []Finding {
 	}
 
 	var findings []Finding
-	isEn := strings.EqualFold(c.Language, "en")
 	for si, s := range c.Sections {
 		if !dateRequiredTypes[s.SectionType] {
 			continue
@@ -171,28 +167,26 @@ func checkDateConsistency(c *cv.CV) []Finding {
 				continue // tarih girilmemiş olabilir, bu ayrı ve daha düşük öncelikli bir konu
 			}
 			if !dateRe.MatchString(strings.TrimSpace(*e.DateStart)) {
-				msg := fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: Ay Yıl, örn: May 2026)", *e.DateStart)
-				if isEn {
-					msg = fmt.Sprintf("Unexpected date format: %q (expected: Month YYYY, e.g. May 2026)", *e.DateStart)
-				}
 				findings = append(findings, Finding{
 					Code:     "inconsistent_date_format",
 					Severity: SeverityMedium,
 					Field:    fmt.Sprintf("sections[%d].entries[%d].dateStart", si, ei),
-					Message:  msg,
+					Message: localizedMsg(c,
+						fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: Ay Yıl, örn: May 2026)", *e.DateStart),
+						fmt.Sprintf("Unexpected date format: %q (expected: Month YYYY, e.g. May 2026)", *e.DateStart),
+					),
 				})
 			}
 			if e.DateEnd != nil && strings.TrimSpace(*e.DateEnd) != "" && !e.IsCurrent {
 				if !dateRe.MatchString(strings.TrimSpace(*e.DateEnd)) {
-					msg := fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: Ay Yıl, örn: May 2026)", *e.DateEnd)
-					if isEn {
-						msg = fmt.Sprintf("Unexpected date format: %q (expected: Month YYYY, e.g. May 2026)", *e.DateEnd)
-					}
 					findings = append(findings, Finding{
 						Code:     "inconsistent_date_format",
 						Severity: SeverityMedium,
 						Field:    fmt.Sprintf("sections[%d].entries[%d].dateEnd", si, ei),
-						Message:  msg,
+						Message: localizedMsg(c,
+							fmt.Sprintf("Tarih formatı beklenmedik: %q (beklenen: Ay Yıl, örn: May 2026)", *e.DateEnd),
+							fmt.Sprintf("Unexpected date format: %q (expected: Month YYYY, e.g. May 2026)", *e.DateEnd),
+						),
 					})
 				}
 			}
@@ -205,7 +199,6 @@ func checkDateConsistency(c *cv.CV) []Finding {
 // tek paragraf açıklamalar bazı parser'larda düzgün ayrıştırılamıyor.
 func checkLongUnbrokenDescription(c *cv.CV) []Finding {
 	var findings []Finding
-	isEn := strings.EqualFold(c.Language, "en")
 	for si, s := range c.Sections {
 		for ei, e := range s.Entries {
 			desc := strings.TrimSpace(e.Description)
@@ -214,15 +207,14 @@ func checkLongUnbrokenDescription(c *cv.CV) []Finding {
 			}
 			hasBullets := strings.Contains(desc, "\n-") || strings.Contains(desc, "\n*") || strings.HasPrefix(desc, "-") || strings.HasPrefix(desc, "*")
 			if !hasBullets {
-				msg := fmt.Sprintf("%q girdisinin açıklaması %d karakter ve madde işaretine bölünmemiş.", e.Title, len(desc))
-				if isEn {
-					msg = fmt.Sprintf("Description for %q is %d characters and not broken into bullet points.", e.Title, len(desc))
-				}
 				findings = append(findings, Finding{
 					Code:     "unbroken_long_description",
 					Severity: SeverityLow,
 					Field:    fmt.Sprintf("sections[%d].entries[%d].description", si, ei),
-					Message:  msg,
+					Message: localizedMsg(c,
+						fmt.Sprintf("%q girdisinin açıklaması %d karakter ve madde işaretine bölünmemiş.", e.Title, len(desc)),
+						fmt.Sprintf("Description for %q is %d characters and not broken into bullet points.", e.Title, len(desc)),
+					),
 				})
 			}
 		}
@@ -235,7 +227,6 @@ func checkLongUnbrokenDescription(c *cv.CV) []Finding {
 // değil — sadece "bu başlık parser'a hiç tanıdık gelmeyebilir" uyarısı.
 func checkCustomSectionHeadings(c *cv.CV) []Finding {
 	var findings []Finding
-	isEn := strings.EqualFold(c.Language, "en")
 	for i, s := range c.Sections {
 		if s.SectionType != cv.SectionCustom {
 			continue
@@ -249,15 +240,14 @@ func checkCustomSectionHeadings(c *cv.CV) []Finding {
 			}
 		}
 		if !known {
-			msg := fmt.Sprintf("%q standart bir ATS başlığına benzemiyor, bazı parser'lar tanımayabilir.", s.Title)
-			if isEn {
-				msg = fmt.Sprintf("%q does not resemble a standard ATS heading; some parsers might not recognize it.", s.Title)
-			}
 			findings = append(findings, Finding{
 				Code:     "nonstandard_section_heading",
 				Severity: SeverityLow,
 				Field:    fmt.Sprintf("sections[%d].title", i),
-				Message:  msg,
+				Message: localizedMsg(c,
+					fmt.Sprintf("%q standart bir ATS başlığına benzemiyor, bazı parser'lar tanımayabilir.", s.Title),
+					fmt.Sprintf("%q does not resemble a standard ATS heading; some parsers might not recognize it.", s.Title),
+				),
 			})
 		}
 	}

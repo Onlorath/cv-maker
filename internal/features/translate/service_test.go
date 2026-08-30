@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"cvmaker/internal/platform/gemini"
 )
 
 func TestBuildPrompt_TurkishToEnglish(t *testing.T) {
@@ -44,7 +46,7 @@ func TestBuildFullCVPrompt(t *testing.T) {
 
 func TestCleanErrorMessage(t *testing.T) {
 	errWithKey := fmt.Errorf("Post https://generativelanguage.googleapis.com?key=AIzaSyD12345: context deadline exceeded")
-	cleaned := cleanErrorMessage(errWithKey)
+	cleaned := gemini.CleanErrorMessage(errWithKey)
 
 	if strings.Contains(cleaned, "AIzaSyD12345") {
 		t.Errorf("expected API key to be sanitized, got: %s", cleaned)

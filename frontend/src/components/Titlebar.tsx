@@ -9,13 +9,8 @@ interface TitlebarProps {
 }
 
 export const Titlebar: React.FC<TitlebarProps> = ({ onOpenSettings, onOpenTranslate }) => {
-  const { cv, updateHeader, lastTranslationSnapshot, undoTranslation } = useCVStore();
+  const { cv, toggleLanguage, lastTranslationSnapshot, undoTranslation } = useCVStore();
   const { t } = useTranslation();
-
-  const toggleLanguage = () => {
-    const nextLang = cv?.language === "tr" ? "en" : "tr";
-    updateHeader({ language: nextLang });
-  };
 
   return (
     <div

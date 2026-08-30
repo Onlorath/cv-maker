@@ -1,11 +1,17 @@
 # Binaries & Wails Build outputs
-build/
+build/bin/
+build/bin/**
+build/bin
 bin/
 cv_maker_app
 *.app
+*.app/**
 *.nosync
 *.nosync/
+*.nosync/**
 .nosync
+.stuck.nosync
+.stuck.nosync/**
 *.exe
 *.exe~
 *.dll

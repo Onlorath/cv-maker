@@ -2,7 +2,7 @@ import { Document, Page, View, Text, Image, Link, StyleSheet } from "@react-pdf/
 import { registerCVFonts } from "./fonts";
 import type { CVEntry, CVSection, CVTemplateProps } from "../types/cv";
 import { getSectionDisplayTitle } from "../i18n";
-import { cleanUrlDisplay, getHref, parseBullets, formatDateRange } from "../lib/cvUtils";
+import { cleanUrlDisplay, getHref, parseBullets, formatDateRange, sortByOrderKey } from "../lib/cvUtils";
 
 registerCVFonts();
 
@@ -279,21 +279,9 @@ function Section({
   lang: "tr" | "en";
   styles: TemplateStyles;
 }) {
-  const entries = section.entries || [];
-  const sortedEntries = [...entries].sort((a, b) =>
-    (a.orderKey || "").localeCompare(b.orderKey || "")
-  );
+  const sortedEntries = sortByOrderKey(section.entries);
 
-  if (section.sectionType === "skills") {
-    return (
-      <View>
-        <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
-        <SkillsList entries={sortedEntries} styles={styles} />
-      </View>
-    );
-  }
-
-  if (section.sectionType === "languages") {
+  if (section.sectionType === "skills" || section.sectionType === "languages") {
     return (
       <View>
         <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
@@ -314,10 +302,7 @@ function Section({
 
 export function ATSClassicTemplate({ data, compact = false }: CVTemplateProps) {
   const styles = createTemplateStyles(compact);
-
-  const sortedSections = [...(data.sections || [])].sort((a, b) =>
-    (a.orderKey || "").localeCompare(b.orderKey || "")
-  );
+  const sortedSections = sortByOrderKey(data.sections);
 
   const contactItems: { text: string; href?: string }[] = [];
   if (data.email) {

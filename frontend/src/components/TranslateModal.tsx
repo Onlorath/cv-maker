@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Languages,
   Sparkles,
@@ -26,6 +26,14 @@ export const TranslateModal: React.FC<TranslateModalProps> = ({ isOpen, onClose 
     currentLang === "tr" ? "en" : "tr"
   );
   const [mode, setMode] = useState<"clone" | "update">("clone");
+
+  useEffect(() => {
+    if (isOpen) {
+      const current = (cv?.language || "tr") as "tr" | "en";
+      setTargetLanguage(current === "tr" ? "en" : "tr");
+      setMode("clone");
+    }
+  }, [isOpen, cv?.language]);
 
   if (!isOpen) return null;
 

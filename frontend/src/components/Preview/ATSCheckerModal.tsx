@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Sparkles,
@@ -43,26 +43,34 @@ export const ATSCheckerModal: React.FC<ATSCheckerModalProps> = ({
   const [jobDescription, setJobDescription] = useState("");
   const [report, setReport] = useState<atsscore.FinalReport | null>(null);
 
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([
-    {
-      id: "format",
-      label: t("ats.stepFormatLabel"),
-      description: t("ats.stepFormatDesc"),
-      status: "pending",
-    },
-    {
-      id: "matching",
-      label: t("ats.stepMatchingLabel"),
-      description: t("ats.stepMatchingDesc"),
-      status: "pending",
-    },
-    {
-      id: "scoring",
-      label: t("ats.stepScoringLabel"),
-      description: t("ats.stepScoringDesc"),
-      status: "pending",
-    },
-  ]);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setStep("input");
+      setReport(null);
+      setChecklist([
+        {
+          id: "format",
+          label: t("ats.stepFormatLabel"),
+          description: t("ats.stepFormatDesc"),
+          status: "pending",
+        },
+        {
+          id: "matching",
+          label: t("ats.stepMatchingLabel"),
+          description: t("ats.stepMatchingDesc"),
+          status: "pending",
+        },
+        {
+          id: "scoring",
+          label: t("ats.stepScoringLabel"),
+          description: t("ats.stepScoringDesc"),
+          status: "pending",
+        },
+      ]);
+    }
+  }, [isOpen, cv?.language, t]);
 
   if (!isOpen) return null;
 

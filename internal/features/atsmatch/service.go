@@ -3,56 +3,16 @@ package atsmatch
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
-	"strings"
 	"time"
 
+	"cvmaker/internal/platform/gemini"
+
 	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
-// isRateLimitError checks if an error represents an HTTP 429 Too Many Requests or quota exhaustion.
-func isRateLimitError(err error) bool {
-	if err == nil {
-		return false
-	}
-	var gErr *googleapi.Error
-	if errors.As(err, &gErr) && gErr.Code == http.StatusTooManyRequests {
-		return true
-	}
-	errStr := strings.ToLower(err.Error())
-	return strings.Contains(errStr, "429") ||
-		strings.Contains(errStr, "resource_exhausted") ||
-		strings.Contains(errStr, "quota") ||
-		strings.Contains(errStr, "rate limit")
-}
-
-// cleanErrorMessage sanitizes error strings, stripping API keys and providing clean user-facing explanations.
-func cleanErrorMessage(err error) string {
-	if err == nil {
-		return ""
-	}
-	errStr := err.Error()
-	if idx := strings.Index(errStr, "key="); idx != -1 {
-		endIdx := strings.IndexAny(errStr[idx:], " \t\n\r\"'&")
-		if endIdx != -1 {
-			errStr = errStr[:idx] + "key=[PROTECTED]" + errStr[idx+endIdx:]
-		} else {
-			errStr = errStr[:idx] + "key=[PROTECTED]"
-		}
-	}
-	if errors.Is(err, context.DeadlineExceeded) || strings.Contains(strings.ToLower(errStr), "deadline") || strings.Contains(strings.ToLower(errStr), "timeout") {
-		return "Yapay zeka yanıt süresi zaman aşımına uğradı (Timeout). Lütfen tekrar deneyin."
-	}
-	if isRateLimitError(err) {
-		return "Yapay zeka istek limiti aşıldı (Rate Limit), lütfen biraz sonra tekrar deneyin."
-	}
-	return errStr
-}
 
 // buildPrompt, JD ve CV JSON'ını Gemini'ye gönderir.
 func buildPrompt(req MatchRequest) string {
@@ -167,7 +127,7 @@ func (g *geminiMatcher) Match(ctx context.Context, req MatchRequest) (MatchRespo
 		resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 		if err != nil {
 			lastErr = err
-			if isRateLimitError(err) {
+			if gemini.IsRateLimitError(err) {
 				slog.WarnContext(ctx, "gemini model rate limited (HTTP 429), falling back to next model",
 					"model", modelName,
 					"attempt", i+1,
@@ -223,5 +183,5 @@ func (g *geminiMatcher) Match(ctx context.Context, req MatchRequest) (MatchRespo
 		return parsed, nil
 	}
 
-	return MatchResponse{}, fmt.Errorf("ats eşleştirme analizi tamamlanamadı: %s", cleanErrorMessage(lastErr))
+	return MatchResponse{}, fmt.Errorf("ats eşleştirme analizi tamamlanamadı: %s", gemini.CleanErrorMessage(lastErr))
 }
