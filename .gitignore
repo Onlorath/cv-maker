@@ -77,7 +77,7 @@ Thumbs.db
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-cvmaker
+/cvmaker
 *.zip
 
 # Android Local & Capacitor Artifacts
