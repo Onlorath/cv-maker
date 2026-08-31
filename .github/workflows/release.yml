@@ -2,6 +2,19 @@ name: Release - Build & Publish Multiplatform Binaries
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'migrations/**'
+      - 'build/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'main.go'
+      - 'app.go'
+      - 'wails.json'
+      - '.github/workflows/release.yml'
     tags:
       - "v*.*.*"
   workflow_dispatch:
