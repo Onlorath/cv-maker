@@ -8,6 +8,10 @@ import { PreviewPane } from "./components/Preview/PreviewPane";
 import { AddSectionModal } from "./components/Editor/AddSectionModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { TranslateModal } from "./components/TranslateModal";
+import { BottomNav, type MobileTab } from "./components/Mobile/BottomNav";
+import { MobileHeader } from "./components/Mobile/MobileHeader";
+import { MobileDrawer } from "./components/Mobile/MobileDrawer";
+import { MobileATSTab } from "./components/Mobile/MobileATSTab";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "./i18n";
 
@@ -18,6 +22,8 @@ export const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
   const [isTranslateOpen, setIsTranslateOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("editor");
 
   useEffect(() => {
     loadCV();
@@ -54,6 +60,42 @@ export const App: React.FC = () => {
     };
   }, [t]);
 
+  // Android Native Hardware Back Button Handler
+  useEffect(() => {
+    let removeListener: (() => void) | null = null;
+    (async () => {
+      try {
+        const { App: CapApp } = await import("@capacitor/app");
+        const listener = await CapApp.addListener("backButton", ({ canGoBack }) => {
+          if (isSettingsOpen) {
+            setIsSettingsOpen(false);
+          } else if (isAddSectionOpen) {
+            setIsAddSectionOpen(false);
+          } else if (isTranslateOpen) {
+            setIsTranslateOpen(false);
+          } else if (isDrawerOpen) {
+            setIsDrawerOpen(false);
+          } else if (mobileTab !== "editor") {
+            setMobileTab("editor");
+          } else if (canGoBack) {
+            window.history.back();
+          } else {
+            CapApp.exitApp();
+          }
+        });
+        removeListener = () => {
+          listener.remove();
+        };
+      } catch {
+        // Ignored on non-Capacitor environments (Desktop Wails / standard Web)
+      }
+    })();
+
+    return () => {
+      if (removeListener) removeListener();
+    };
+  }, [isSettingsOpen, isAddSectionOpen, isTranslateOpen, isDrawerOpen, mobileTab]);
+
   if (isLoading) {
     return (
       <div className="w-screen h-screen flex flex-col items-center justify-center bg-[var(--panel-solid)] text-[var(--ink)] space-y-3">
@@ -73,26 +115,56 @@ export const App: React.FC = () => {
     <>
       <Toaster theme="light" position="top-right" richColors closeButton />
       
-      {/* Centered Desktop Window Container */}
+      {/* Centered Window / Mobile Container */}
       <div className="app-window animate-fade-in">
-        {/* macOS Titlebar */}
-        <Titlebar
+        {/* 1. Desktop Titlebar (>= 1024px) */}
+        <div className="hidden lg:block">
+          <Titlebar
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenTranslate={() => setIsTranslateOpen(true)}
+          />
+        </div>
+
+        {/* 2. Mobile App Header (< 1024px) */}
+        <MobileHeader
+          onOpenDrawer={() => setIsDrawerOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenTranslate={() => setIsTranslateOpen(true)}
         />
 
-        {/* 3-Column Workspace Grid */}
+        {/* 3. Desktop 3-Column Workspace Grid (>= 1024px) */}
         <div className="workspace-grid">
-          {/* 1. Left: Navigation Sidebar (210px) */}
+          {/* Left: Navigation Sidebar (210px) */}
           <Sidebar onOpenAddSection={() => setIsAddSectionOpen(true)} />
 
-          {/* 2. Middle: Modular Editor Panel (minmax 320px, 1fr) */}
+          {/* Middle: Modular Editor Panel */}
           <CVEditorPane />
 
-          {/* 3. Right: Live HTML Resume Sheet & ATS Seal (380px) */}
+          {/* Right: Live HTML Resume Sheet & ATS Seal */}
           <PreviewPane />
         </div>
+
+        {/* 4. Mobile & Tablet Workspace View (< 1024px) */}
+        <div className="mobile-workspace">
+          {mobileTab === "editor" && <CVEditorPane />}
+          {mobileTab === "preview" && <PreviewPane />}
+          {mobileTab === "ats" && <MobileATSTab />}
+        </div>
+
+        {/* 5. Mobile Bottom Navigation Bar (< 1024px) */}
+        <BottomNav
+          activeTab={mobileTab}
+          onTabChange={(tab) => setMobileTab(tab)}
+        />
       </div>
+
+      {/* Mobile Section Navigation Drawer */}
+      <MobileDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onOpenAddSection={() => setIsAddSectionOpen(true)}
+        onSelectSection={() => setMobileTab("editor")}
+      />
 
       {/* Add Section Modal */}
       <AddSectionModal

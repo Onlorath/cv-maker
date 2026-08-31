@@ -19,6 +19,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
@@ -112,6 +113,7 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
           type="button"
           {...attributes}
           {...listeners}
+          style={{ touchAction: "none" }}
           onClick={(e) => e.stopPropagation()}
           className="p-0.5 text-[var(--ink-faint)] hover:text-[var(--ink)] opacity-40 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity shrink-0"
           title={t("common.drag")}
@@ -165,6 +167,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 4,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 6,
       },
     }),
     useSensor(KeyboardSensor, {

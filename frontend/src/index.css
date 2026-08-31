@@ -93,22 +93,44 @@ body {
   outline-offset: 2px;
 }
 
-/* ================= APP WINDOW (fills Wails webview) ================= */
+/* ================= APP WINDOW (fills Wails webview / mobile viewport) ================= */
 .app-window {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: var(--panel-solid);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.workspace-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 210px minmax(360px, 1.2fr) minmax(440px, 1.5fr);
-  min-height: 0;
-  overflow: hidden;
+/* Desktop Grid Layout (>= 1024px) */
+@media (min-width: 1024px) {
+  .workspace-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 210px minmax(360px, 1.2fr) minmax(440px, 1.5fr);
+    min-height: 0;
+    overflow: hidden;
+  }
+  .mobile-workspace {
+    display: none !important;
+  }
+}
+
+/* Mobile & Tablet Layout (< 1024px) */
+@media (max-width: 1023px) {
+  .workspace-grid {
+    display: none !important;
+  }
+  .mobile-workspace {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Form Input & Labels */

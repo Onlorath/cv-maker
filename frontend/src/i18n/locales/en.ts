@@ -331,6 +331,14 @@ export const en: Translations = {
     startBtn: "Start Translation (1 Request)",
     cancelBtn: "Cancel",
   },
+  mobile: {
+    tabEditor: "Editor",
+    tabPreview: "Preview",
+    tabATS: "ATS Score",
+    sectionsTitle: "Sections & Navigation",
+    menuTitle: "Menu & Sections",
+    closeMenu: "Close Menu",
+  },
   store: {
     titleUpdateError: "Failed to update header",
     sectionAddError: "Failed to add section",

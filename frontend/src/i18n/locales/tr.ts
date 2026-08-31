@@ -329,6 +329,14 @@ export const tr = {
     startBtn: "Çeviriyi Başlat (1 İstek)",
     cancelBtn: "Vazgeç",
   },
+  mobile: {
+    tabEditor: "Düzenle",
+    tabPreview: "Önizleme",
+    tabATS: "ATS Skoru",
+    sectionsTitle: "Bölümler & Gezinme",
+    menuTitle: "Menü & Bölümler",
+    closeMenu: "Menüyü Kapat",
+  },
   store: {
     titleUpdateError: "Başlık güncellenemedi",
     sectionAddError: "Bölüm eklenemedi",

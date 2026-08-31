@@ -1,5 +1,8 @@
 import type { CVData, CVSection, CVEntry, SectionType } from "../types/cv";
-import type { atsscore } from "../../wailsjs/go/models";
+import { atsscore, atsmatch } from "../../wailsjs/go/models";
+import { MobileStorage } from "./mobileStorage";
+import { runDeterministicATSCheck } from "./mobileATSCheck";
+import { MobileGemini } from "./mobileGemini";
 
 declare global {
   interface Window {
@@ -33,112 +36,6 @@ declare global {
   }
 }
 
-// Initial demo / template CV data
-const initialMockCV: CVData = {
-  id: "demo-cv-1",
-  title: "Senior Software Engineer CV",
-  language: "tr",
-  templateId: "ats-classic",
-  fullName: "Yusuf Kaan",
-  jobTitle: "Senior Backend & Cloud Architect",
-  email: "yusuf@example.com",
-  phone: "+90 555 123 45 67",
-  location: "İstanbul, Türkiye",
-  linkedin: "linkedin.com/in/yusufkaan",
-  github: "github.com/yusufkaan",
-  website: "yusuf.dev",
-  summary: "7+ yıllık deneyime sahip, yüksek trafikli mikroservis mimarileri, distributed sistemler ve Go/Cloud altyapıları konusunda uzmanlaşmış Kıdemli Backend Mühendisi. Clean Architecture ve Domain-Driven Design prensiplerini benimseyen, performans ve Big-O optimizasyonunu ön planda tutan bir yaklaşım.",
-  photoPath: "",
-  sections: [
-    {
-      id: "sec-1",
-      cvId: "demo-cv-1",
-      sectionType: "experience",
-      title: "DENEYİM",
-      orderKey: "a0",
-      entries: [
-        {
-          id: "ent-1",
-          sectionId: "sec-1",
-          orderKey: "a0",
-          title: "Senior Backend Engineer",
-          subtitle: "Onlorath Tech Systems",
-          location: "İstanbul (Hibrit)",
-          dateStart: "2023-01",
-          dateEnd: null,
-          isCurrent: true,
-          description: "- Günlük 15M+ isteği işleyen mikroservis mimarisini Go ve gRPC kullanarak sıfırdan tasarladı ve hayata geçirdi.\n- Dağıtık önbellekleme (Redis Cluster) ve PostgreSQL optimizasyonlarıyla API yanıt sürelerini %40 düşürdü.\n- Docker ve Kubernetes üzerinde CI/CD pipeline'larını kurarak deployment sürelerini 15 dakikadan 3 dakikaya indirdi.",
-          meta: {},
-        },
-        {
-          id: "ent-2",
-          sectionId: "sec-1",
-          orderKey: "a1",
-          title: "Backend Developer",
-          subtitle: "Kartelam Digital",
-          location: "İstanbul",
-          dateStart: "2020-06",
-          dateEnd: "2022-12",
-          isCurrent: false,
-          description: "- E-ticaret platformunun ödeme ve faturalandırma servislerini event-driven mimariyle yeniden yazdı.\n- Stripe ve yerel ödeme sağlayıcıları entegrasyonlarını sıfır hata toleransıyla tamamladı.",
-          meta: {},
-        },
-      ],
-    },
-    {
-      id: "sec-2",
-      cvId: "demo-cv-1",
-      sectionType: "education",
-      title: "EĞİTİM",
-      orderKey: "a1",
-      entries: [
-        {
-          id: "ent-3",
-          sectionId: "sec-2",
-          orderKey: "a0",
-          title: "İstanbul Teknik Üniversitesi",
-          subtitle: "Bilgisayar Mühendisliği (Lisans)",
-          location: "İstanbul",
-          dateStart: "2016-09",
-          dateEnd: "2020-06",
-          isCurrent: false,
-          description: "Yüksek Onur Derecesi (GPA: 3.78/4.00). Bitirme Projesi: Dağıtık Konsensus Algoritmaları.",
-          meta: {},
-        },
-      ],
-    },
-    {
-      id: "sec-3",
-      cvId: "demo-cv-1",
-      sectionType: "skills",
-      title: "TEKNİK YETENEKLER",
-      orderKey: "a2",
-      entries: [
-        { id: "sk-1", sectionId: "sec-3", orderKey: "a0", title: "Go (Golang)", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "Uzman" } },
-        { id: "sk-2", sectionId: "sec-3", orderKey: "a1", title: "PostgreSQL & SQLite", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "Uzman" } },
-        { id: "sk-3", sectionId: "sec-3", orderKey: "a2", title: "Docker & Kubernetes", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "İleri" } },
-        { id: "sk-4", sectionId: "sec-3", orderKey: "a3", title: "Redis & gRPC", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "İleri" } },
-        { id: "sk-5", sectionId: "sec-3", orderKey: "a4", title: "React & TypeScript", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "Orta/İleri" } },
-        { id: "sk-6", sectionId: "sec-3", orderKey: "a5", title: "Clean Architecture", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "Uzman" } },
-      ],
-    },
-    {
-      id: "sec-4",
-      cvId: "demo-cv-1",
-      sectionType: "languages",
-      title: "DİLLER",
-      orderKey: "a3",
-      entries: [
-        { id: "lang-1", sectionId: "sec-4", orderKey: "a0", title: "Türkçe", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "Anadil" } },
-        { id: "lang-2", sectionId: "sec-4", orderKey: "a1", title: "İngilizce", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "C1 - Profesyonel" } },
-        { id: "lang-3", sectionId: "sec-4", orderKey: "a2", title: "Almanca", subtitle: "", location: "", isCurrent: false, description: "", meta: { level: "A2 - Temel" } },
-      ],
-    },
-  ],
-};
-
-let inMemoryCV = JSON.parse(JSON.stringify(initialMockCV)) as CVData;
-
 export const WailsBridge = {
   isWailsAvailable(): boolean {
     return typeof window !== "undefined" && !!window.go?.main?.App;
@@ -148,31 +45,21 @@ export const WailsBridge = {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.GetCV(id);
     }
-    return inMemoryCV;
+    return await MobileStorage.getCV(id);
   },
 
   async listCVs(): Promise<CVData[]> {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.ListCVs();
     }
-    return [inMemoryCV];
+    return await MobileStorage.listCVs();
   },
 
   async createCV(req: { title: string; language: string; fullName: string; email: string }): Promise<CVData> {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.CreateCV(req);
     }
-    const newCV: CVData = {
-      ...initialMockCV,
-      id: "cv-" + Date.now(),
-      title: req.title,
-      language: (req.language as "tr" | "en") || "tr",
-      fullName: req.fullName,
-      email: req.email,
-      sections: [],
-    };
-    inMemoryCV = newCV;
-    return newCV;
+    return await MobileStorage.createCV(req);
   },
 
   async updateCV(cv: CVData): Promise<void> {
@@ -180,7 +67,7 @@ export const WailsBridge = {
       await window.go!.main!.App!.UpdateCV(cv);
       return;
     }
-    inMemoryCV = { ...cv };
+    await MobileStorage.updateCV(cv);
   },
 
   async deleteCV(id: string): Promise<void> {
@@ -188,22 +75,14 @@ export const WailsBridge = {
       await window.go!.main!.App!.DeleteCV(id);
       return;
     }
+    await MobileStorage.deleteCV(id);
   },
 
   async createSection(req: { cvId: string; sectionType: SectionType; title: string; orderKey: string }): Promise<CVSection> {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.CreateSection(req);
     }
-    const sec: CVSection = {
-      id: "sec-" + Date.now(),
-      cvId: req.cvId,
-      sectionType: req.sectionType,
-      title: req.title,
-      orderKey: req.orderKey,
-      entries: [],
-    };
-    inMemoryCV.sections.push(sec);
-    return sec;
+    return await MobileStorage.createSection(req);
   },
 
   async updateSection(sec: CVSection): Promise<void> {
@@ -211,8 +90,7 @@ export const WailsBridge = {
       await window.go!.main!.App!.UpdateSection(sec);
       return;
     }
-    const idx = inMemoryCV.sections.findIndex((s) => s.id === sec.id);
-    if (idx !== -1) inMemoryCV.sections[idx] = sec;
+    await MobileStorage.updateSection(sec);
   },
 
   async deleteSection(id: string): Promise<void> {
@@ -220,7 +98,7 @@ export const WailsBridge = {
       await window.go!.main!.App!.DeleteSection(id);
       return;
     }
-    inMemoryCV.sections = inMemoryCV.sections.filter((s) => s.id !== id);
+    await MobileStorage.deleteSection(id);
   },
 
   async reorderSection(id: string, newOrderKey: string): Promise<void> {
@@ -228,28 +106,14 @@ export const WailsBridge = {
       await window.go!.main!.App!.ReorderSection(id, newOrderKey);
       return;
     }
-    const sec = inMemoryCV.sections.find((s) => s.id === id);
-    if (sec) sec.orderKey = newOrderKey;
+    await MobileStorage.reorderSection(id, newOrderKey);
   },
 
   async createEntry(req: { sectionId: string; orderKey: string; title: string }): Promise<CVEntry> {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.CreateEntry(req);
     }
-    const entry: CVEntry = {
-      id: "ent-" + Date.now(),
-      sectionId: req.sectionId,
-      orderKey: req.orderKey,
-      title: req.title,
-      subtitle: "",
-      location: "",
-      isCurrent: false,
-      description: "",
-      meta: {},
-    };
-    const sec = inMemoryCV.sections.find((s) => s.id === req.sectionId);
-    if (sec) sec.entries.push(entry);
-    return entry;
+    return await MobileStorage.createEntry(req);
   },
 
   async updateEntry(entry: CVEntry): Promise<void> {
@@ -257,13 +121,7 @@ export const WailsBridge = {
       await window.go!.main!.App!.UpdateEntry(entry);
       return;
     }
-    for (const sec of inMemoryCV.sections) {
-      const idx = sec.entries.findIndex((e) => e.id === entry.id);
-      if (idx !== -1) {
-        sec.entries[idx] = entry;
-        break;
-      }
-    }
+    await MobileStorage.updateEntry(entry);
   },
 
   async deleteEntry(id: string): Promise<void> {
@@ -271,9 +129,7 @@ export const WailsBridge = {
       await window.go!.main!.App!.DeleteEntry(id);
       return;
     }
-    for (const sec of inMemoryCV.sections) {
-      sec.entries = sec.entries.filter((e) => e.id !== id);
-    }
+    await MobileStorage.deleteEntry(id);
   },
 
   async reorderEntry(id: string, newOrderKey: string): Promise<void> {
@@ -281,27 +137,25 @@ export const WailsBridge = {
       await window.go!.main!.App!.ReorderEntry(id, newOrderKey);
       return;
     }
-    for (const sec of inMemoryCV.sections) {
-      const ent = sec.entries.find((e) => e.id === id);
-      if (ent) {
-        ent.orderKey = newOrderKey;
-        break;
-      }
-    }
+    await MobileStorage.reorderEntry(id, newOrderKey);
   },
 
   async translateCV(req: { sourceLanguage: string; targetLanguage: string; fieldType: string; text: string }): Promise<{ translatedText: string; note: string }> {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.TranslateCV(req);
     }
-    // Fallback simulate translation in browser dev mode
-    await new Promise((r) => setTimeout(r, 800));
+    const apiKey = MobileStorage.getGeminiAPIKey();
+    if (apiKey) {
+      return await MobileGemini.translateField(apiKey, req);
+    }
+    // Simulation fallback if no key provided
+    await new Promise((r) => setTimeout(r, 600));
     return {
       translatedText:
         req.targetLanguage === "tr"
           ? `[TR CV Çevirisi] ${req.text}`
           : `[EN Resume Translation] ${req.text}`,
-      note: "Development simulation",
+      note: "Development simulation (Ayarlar menüsünden API Key ekleyebilirsiniz)",
     };
   },
 
@@ -309,8 +163,12 @@ export const WailsBridge = {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.TranslateFullCV(cv, targetLanguage);
     }
-    // Fallback simulate full CV translation in browser dev mode
-    await new Promise((r) => setTimeout(r, 1200));
+    const apiKey = MobileStorage.getGeminiAPIKey();
+    if (apiKey) {
+      return await MobileGemini.translateFullCV(apiKey, cv, targetLanguage);
+    }
+    // Simulation fallback
+    await new Promise((r) => setTimeout(r, 800));
     const prefix = targetLanguage === "tr" ? "[TR] " : "[EN] ";
     return {
       ...cv,
@@ -334,7 +192,7 @@ export const WailsBridge = {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.GetGeminiAPIKey();
     }
-    return localStorage.getItem("dev_gemini_key") || "";
+    return MobileStorage.getGeminiAPIKey();
   },
 
   async setGeminiAPIKey(key: string): Promise<void> {
@@ -342,7 +200,15 @@ export const WailsBridge = {
       await window.go!.main!.App!.SetGeminiAPIKey(key);
       return;
     }
-    localStorage.setItem("dev_gemini_key", key);
+    MobileStorage.setGeminiAPIKey(key);
+  },
+
+  async deleteGeminiAPIKey(): Promise<void> {
+    if (this.isWailsAvailable()) {
+      await window.go!.main!.App!.DeleteGeminiAPIKey();
+      return;
+    }
+    MobileStorage.deleteGeminiAPIKey();
   },
 
   async savePDF(base64Data: string, suggestedFilename: string): Promise<void> {
@@ -350,82 +216,84 @@ export const WailsBridge = {
       await window.go!.main!.App!.SavePDF(base64Data, suggestedFilename);
       return;
     }
-    // Browser fallback
+
+    // Try Capacitor Native File & Share on mobile devices
+    try {
+      const { Capacitor } = await import("@capacitor/core");
+      if (Capacitor.isNativePlatform()) {
+        const { Filesystem, Directory } = await import("@capacitor/filesystem");
+        const { Share } = await import("@capacitor/share");
+
+        const fileName = suggestedFilename.endsWith(".pdf") ? suggestedFilename : `${suggestedFilename}.pdf`;
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
+
+        await Share.share({
+          title: fileName,
+          text: `${fileName} - CV Maker`,
+          url: writeResult.uri,
+          dialogTitle: "CV Paylaş / Kaydet",
+        });
+        return;
+      }
+    } catch (capErr) {
+      console.warn("Capacitor share not active, falling back to browser download:", capErr);
+    }
+
+    // Standard Web/Browser Fallback (Direct Blob Download)
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
     const link = document.createElement("a");
-    link.href = "data:application/pdf;base64," + base64Data;
+    link.href = url;
     link.download = suggestedFilename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
   async atsFormatCheck(cv: CVData): Promise<atsscore.FinalReport> {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.ATSFormatCheck(cv);
     }
-    // Browser mock fallback
-    await new Promise((r) => setTimeout(r, 600));
-    const isEn = cv.language === "en";
-    return {
-      score: 92,
-      formatScore: 92,
-      contentPending: true,
-      formatFindings: [
-        {
-          code: "missing_summary",
-          severity: "low",
-          field: "summary",
-          message: isEn
-            ? "Summary section is empty. Filling it is strongly recommended."
-            : "Özet bölümü boş veya çok kısa. Doldurulması önerilir.",
-        },
-      ],
-      convertValues: () => ({}) as any,
-    } as atsscore.FinalReport;
+    return runDeterministicATSCheck(cv);
   },
 
   async atsFullCheck(cv: CVData, jobDescription: string): Promise<atsscore.FinalReport> {
     if (this.isWailsAvailable()) {
       return await window.go!.main!.App!.ATSFullCheck(cv, jobDescription);
     }
-    // Browser mock fallback
-    await new Promise((r) => setTimeout(r, 1200));
-    const isEn = cv.language === "en";
-    return {
-      score: 84,
-      formatScore: 92,
-      contentScore: 81,
-      contentPending: false,
-      formatFindings: [
-        {
-          code: "missing_summary",
-          severity: "low",
-          field: "summary",
-          message: isEn
-            ? "Summary section is empty. Filling it is strongly recommended."
-            : "Özet bölümü boş veya çok kısa. Doldurulması önerilir.",
-        },
-      ],
-      matchedSkills: ["Go (Golang)", "PostgreSQL", "Docker", "Kubernetes", "Redis", "gRPC", "Clean Architecture"],
-      missingSkills: isEn
-        ? ["Terraform / AWS CDK", "Kafka or RabbitMQ Event Broker"]
-        : ["Terraform / AWS CDK", "Kafka veya RabbitMQ Event Broker"],
+    const apiKey = MobileStorage.getGeminiAPIKey();
+    if (apiKey) {
+      return await MobileGemini.fullATSCheck(apiKey, cv, jobDescription);
+    }
+    const report = runDeterministicATSCheck(cv);
+    return new atsscore.FinalReport({
+      score: report.score,
+      formatScore: report.formatScore,
+      contentPending: true,
+      formatFindings: report.formatFindings,
+      matchedSkills: [],
+      missingSkills: [],
       suggestions: [
-        {
-          entryId: "ent-1",
-          suggestion: isEn
-            ? "You can add a bullet point highlighting event-driven architecture and asynchronous messaging in your microservices experience."
-            : "Mikroservis mimarisindeki deneyiminde Event-Driven iletişim ve kuyruk yapıları (varsa) üzerine bir cümle ekleyebilirsin.",
-        },
-        {
-          entryId: "ent-2",
-          suggestion: isEn
-            ? "Clearly state the transactional consistency and webhook handling mechanisms in the payment gateway services."
-            : "Ödeme altyapısındaki asenkron kuyruk işlemlerini ve veri tutarlılığı yöntemlerini açıkça belirt.",
-        },
+        new atsmatch.Suggestion({
+          entryId: "note",
+          suggestion:
+            cv.language === "en"
+              ? "Add your Gemini API Key in Settings to enable real-time job description matching and smart suggestions."
+              : "İş ilanı eşleştirmesi ve yapay zeka önerilerini aktifleştirmek için Ayarlar menüsünden Gemini API Anahtarınızı girin.",
+        }),
       ],
-      convertValues: () => ({}) as any,
-    } as atsscore.FinalReport;
+    });
   },
 };
-
