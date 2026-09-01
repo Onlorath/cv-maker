@@ -17,11 +17,11 @@ export const PreviewPane: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportPDF = async () => {
-    const { cv: currentCV, isCompactMode } = useCVStore.getState();
+    const { cv: currentCV } = useCVStore.getState();
     if (!currentCV) return;
     try {
       setIsExporting(true);
-      const doc = <ATSClassicTemplate data={currentCV} compact={isCompactMode} />;
+      const doc = <ATSClassicTemplate data={currentCV} compact={false} />;
       const blob = await pdf(doc).toBlob();
       const reader = new FileReader();
       reader.readAsDataURL(blob);
@@ -78,7 +78,7 @@ export const PreviewPane: React.FC = () => {
               type="button"
               onClick={handleExportPDF}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer hover:shadow-xs active:scale-[0.98] disabled:opacity-60"
+              className="flex lg:hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer hover:shadow-xs active:scale-[0.98] disabled:opacity-60"
               title={t("sidebar.exportPdf")}
             >
               {isExporting ? (

@@ -301,7 +301,8 @@ export const en: Translations = {
     summaryTitleTr: "ÖZET",
     summaryTitleEn: "PROFESSIONAL SUMMARY",
     pageCount: "{{count}} Page{{s}}",
-    pageIndicator: "Page {{current}} of {{total}}",
+    pageIndicator: "Page {{current}} / {{total}}",
+    updating: "Updating...",
   },
   sectionHeadings: {
     experience: "WORK EXPERIENCE",

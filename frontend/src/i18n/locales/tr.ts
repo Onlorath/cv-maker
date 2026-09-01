@@ -300,6 +300,7 @@ export const tr = {
     summaryTitleEn: "PROFESSIONAL SUMMARY",
     pageCount: "{{count}} Sayfa",
     pageIndicator: "Sayfa {{current}} / {{total}}",
+    updating: "Güncelleniyor...",
   },
   sectionHeadings: {
     experience: "İŞ DENEYİMİ",

@@ -33,6 +33,7 @@
     "@react-pdf/renderer": "^4.6.1",
     "framer-motion": "^13.1.0",
     "lucide-react": "^1.32.0",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "sonner": "^2.0.8",

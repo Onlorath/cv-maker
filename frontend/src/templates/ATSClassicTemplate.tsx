@@ -176,7 +176,7 @@ function BulletList({ text, styles }: { text: string; styles: TemplateStyles }) 
   return (
     <View style={{ marginTop: 2 }}>
       {lines.map((line, i) => (
-        <View key={i} style={styles.bulletRow}>
+        <View key={i} style={styles.bulletRow} wrap={false}>
           <Text style={styles.bulletDot}>•</Text>
           <Text style={styles.bulletText}>{line}</Text>
         </View>
@@ -202,27 +202,30 @@ function StandardEntry({
 
   return (
     <View style={styles.entryBlock}>
-      <View style={styles.entryHeaderRow}>
-        <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", flex: 1, marginRight: 8 }}>
-          <Text style={styles.entryTitle}>{entry.title || "Untitled Role / Degree"}</Text>
-          {cleanLink && href ? (
-            <Text style={{ fontSize: styles.entryDates.fontSize, color: "#64748b", marginLeft: 4 }}>
-              {" | "}
-              <Link src={href} style={{ color: "#2563eb", textDecoration: "none" }}>
-                {cleanLink}
-              </Link>
-            </Text>
-          ) : null}
+      {/* Entry header (Title, dates, subtitle, location) kept together */}
+      <View wrap={false}>
+        <View style={styles.entryHeaderRow}>
+          <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", flex: 1, marginRight: 8 }}>
+            <Text style={styles.entryTitle}>{entry.title || "Untitled Role / Degree"}</Text>
+            {cleanLink && href ? (
+              <Text style={{ fontSize: styles.entryDates.fontSize, color: "#64748b", marginLeft: 4 }}>
+                {" | "}
+                <Link src={href} style={{ color: "#2563eb", textDecoration: "none" }}>
+                  {cleanLink}
+                </Link>
+              </Text>
+            ) : null}
+          </View>
+          {dateRange ? <Text style={styles.entryDates}>{dateRange}</Text> : null}
         </View>
-        {dateRange ? <Text style={styles.entryDates}>{dateRange}</Text> : null}
-      </View>
-      <View style={styles.entryHeaderRow}>
-        {entry.subtitle ? (
-          <Text style={styles.entrySubtitle}>{entry.subtitle}</Text>
-        ) : (
-          <Text style={styles.entrySubtitle}> </Text>
-        )}
-        {entry.location ? <Text style={styles.entryLocation}>{entry.location}</Text> : null}
+        <View style={styles.entryHeaderRow}>
+          {entry.subtitle ? (
+            <Text style={styles.entrySubtitle}>{entry.subtitle}</Text>
+          ) : (
+            <Text style={styles.entrySubtitle}> </Text>
+          )}
+          {entry.location ? <Text style={styles.entryLocation}>{entry.location}</Text> : null}
+        </View>
       </View>
       {entry.description ? <BulletList text={entry.description} styles={styles} /> : null}
     </View>
@@ -283,7 +286,7 @@ function Section({
 
   if (section.sectionType === "skills" || section.sectionType === "languages") {
     return (
-      <View>
+      <View wrap={false}>
         <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
         <SkillsList entries={sortedEntries} styles={styles} />
       </View>
@@ -292,7 +295,9 @@ function Section({
 
   return (
     <View>
-      <Text style={styles.sectionTitle}>{getSectionDisplayTitle(section, lang)}</Text>
+      <Text style={styles.sectionTitle} minPresenceAhead={40}>
+        {getSectionDisplayTitle(section, lang)}
+      </Text>
       {sortedEntries.map((entry) => (
         <StandardEntry key={entry.id} entry={entry} lang={lang} styles={styles} />
       ))}
@@ -303,6 +308,7 @@ function Section({
 export function ATSClassicTemplate({ data, compact = false }: CVTemplateProps) {
   const styles = createTemplateStyles(compact);
   const sortedSections = sortByOrderKey(data.sections);
+  const lang = (data.language || "tr") as "tr" | "en";
 
   const contactItems: { text: string; href?: string }[] = [];
   if (data.email) {
@@ -354,17 +360,31 @@ export function ATSClassicTemplate({ data, compact = false }: CVTemplateProps) {
 
         {/* Summary section */}
         {data.summary ? (
-          <View style={{ marginBottom: compact ? 4 : 6 }}>
+          <View style={{ marginBottom: compact ? 4 : 6 }} wrap={false}>
             <Text style={styles.sectionTitle}>
-              {data.language === "tr" ? "ÖZET" : "PROFESSIONAL SUMMARY"}
+              {lang === "tr" ? "ÖZET" : "PROFESSIONAL SUMMARY"}
             </Text>
-            <Text style={styles.summaryText}>{data.summary}</Text>
+            {data.summary
+              .split(/\n{2,}/)
+              .map((p) => p.replace(/\s*\n\s*/g, " ").trim())
+              .filter(Boolean)
+              .map((para, idx) => (
+                <Text
+                  key={idx}
+                  style={[
+                    styles.summaryText,
+                    idx > 0 ? { marginTop: compact ? 2 : 3 } : {},
+                  ]}
+                >
+                  {para}
+                </Text>
+              ))}
           </View>
         ) : null}
 
         {/* Dynamic Sections */}
         {sortedSections.map((section) => (
-          <Section key={section.id} section={section} lang={data.language} styles={styles} />
+          <Section key={section.id} section={section} lang={lang} styles={styles} />
         ))}
       </Page>
     </Document>

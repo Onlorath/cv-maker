@@ -213,11 +213,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
   };
 
   const handleExportPDF = async () => {
-    const { cv: currentCV, isCompactMode } = useCVStore.getState();
+    const { cv: currentCV } = useCVStore.getState();
     if (!currentCV) return;
     try {
       setIsExporting(true);
-      const doc = <ATSClassicTemplate data={currentCV} compact={isCompactMode} />;
+      const doc = <ATSClassicTemplate data={currentCV} compact={false} />;
       const blob = await pdf(doc).toBlob();
       const reader = new FileReader();
       reader.readAsDataURL(blob);
