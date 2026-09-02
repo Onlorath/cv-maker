@@ -208,6 +208,7 @@ export namespace cv {
 	    website: string;
 	    summary: string;
 	    photoPath?: string;
+	    photoSize: number;
 	    sourceCvId?: string;
 	    // Go type: time
 	    createdAt: any;
@@ -235,6 +236,7 @@ export namespace cv {
 	        this.website = source["website"];
 	        this.summary = source["summary"];
 	        this.photoPath = source["photoPath"];
+	        this.photoSize = source["photoSize"];
 	        this.sourceCvId = source["sourceCvId"];
 	        this.createdAt = this.convertValues(source["createdAt"], null);
 	        this.updatedAt = this.convertValues(source["updatedAt"], null);

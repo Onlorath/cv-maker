@@ -98,11 +98,11 @@ func (r *repository) CreateCV(ctx context.Context, c *CV) error {
 		INSERT INTO cvs (
 			id, title, language, template_id, full_name, job_title, 
 			email, phone, location, linkedin, github, website, 
-			summary, photo_path, source_cv_id, created_at, updated_at
+			summary, photo_path, photo_size, source_cv_id, created_at, updated_at
 		) VALUES (
 			:id, :title, :language, :template_id, :full_name, :job_title,
 			:email, :phone, :location, :linkedin, :github, :website,
-			:summary, :photo_path, :source_cv_id, :created_at, :updated_at
+			:summary, :photo_path, :photo_size, :source_cv_id, :created_at, :updated_at
 		)`
 	_, err := r.db.NamedExecContext(ctx, query, c)
 	if err != nil {
@@ -119,7 +119,7 @@ func (r *repository) UpdateCV(ctx context.Context, c *CV) error {
 			full_name = :full_name, job_title = :job_title, email = :email,
 			phone = :phone, location = :location, linkedin = :linkedin,
 			github = :github, website = :website, summary = :summary,
-			photo_path = :photo_path, updated_at = :updated_at
+			photo_path = :photo_path, photo_size = :photo_size, updated_at = :updated_at
 		WHERE id = :id`
 	
 	res, err := r.db.NamedExecContext(ctx, query, c)

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import type { CVData } from "../../types/cv";
-import { ATSClassicTemplate } from "../../templates/ATSClassicTemplate";
+import { getCVTemplate } from "../../templates/templateRegistry";
 import { pdf } from "@react-pdf/renderer";
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
@@ -149,7 +149,8 @@ export const ResumeSheet: React.FC<ResumeSheetProps> = ({ cv, onPageCountChange 
   const compilePDF = useCallback(async (cvData: CVData, seq: number) => {
     try {
       setIsRendering(true);
-      const doc = <ATSClassicTemplate data={cvData} compact={false} />;
+      const TemplateComponent = getCVTemplate(cvData.templateId);
+      const doc = <TemplateComponent data={cvData} compact={false} />;
       const blob = await pdf(doc).toBlob();
 
       // If a newer render was triggered while pdf() was compiling, discard this obsolete result

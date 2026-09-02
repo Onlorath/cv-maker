@@ -35,7 +35,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { pdf } from "@react-pdf/renderer";
 import { useCVStore } from "../store/useCVStore";
-import { ATSClassicTemplate } from "../templates/ATSClassicTemplate";
+import { getCVTemplate } from "../templates/templateRegistry";
 import { WailsBridge } from "../lib/wailsBridge";
 import { sortByOrderKey } from "../lib/cvUtils";
 import { useTranslation, getSectionDisplayTitle } from "../i18n";
@@ -217,7 +217,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddSection }) => {
     if (!currentCV) return;
     try {
       setIsExporting(true);
-      const doc = <ATSClassicTemplate data={currentCV} compact={false} />;
+      const TemplateComponent = getCVTemplate(currentCV.templateId);
+      const doc = <TemplateComponent data={currentCV} compact={false} />;
       const blob = await pdf(doc).toBlob();
       const reader = new FileReader();
       reader.readAsDataURL(blob);

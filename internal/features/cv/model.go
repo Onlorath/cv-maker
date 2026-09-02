@@ -33,6 +33,7 @@ type CV struct {
 	Website    string    `json:"website" db:"website"`
 	Summary    string    `json:"summary" db:"summary"`
 	PhotoPath  *string   `json:"photoPath,omitempty" db:"photo_path"`
+	PhotoSize  int       `json:"photoSize" db:"photo_size"`
 	SourceCVID *string   `json:"sourceCvId,omitempty" db:"source_cv_id"`
 	CreatedAt  time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt  time.Time `json:"updatedAt" db:"updated_at"`

@@ -1,3 +1,4 @@
+import React from "react";
 import { Document, Page, View, Text, Image, Link, StyleSheet } from "@react-pdf/renderer";
 import { registerCVFonts } from "./fonts";
 import type { CVEntry, CVSection, CVTemplateProps } from "../types/cv";
@@ -6,166 +7,163 @@ import { cleanUrlDisplay, getHref, parseBullets, formatDateRange, sortByOrderKey
 
 registerCVFonts();
 
-// -----------------------------------------------------------------------
-// ATS NOTU: react-pdf, JSX'te tanımlanan component sırasını PDF content
-// stream'ine birebir aynı sırayla yazar. Yani bir ATS parser'ın metni okuma
-// sırası = bu dosyadaki JSX sırasıdır. Flex layout kullanıldığında görsel sıra
-// ile JSX sırası örtüşür. Bu sebeple foto için absolute positioning kullanılmaz;
-// header'da text bloğu önce, foto flex satırının son elemanı olarak tanımlanır.
-// Bu sayede hem doğru görsel yerleşim hem de doğru ATS okuma sırası sağlanır.
-// -----------------------------------------------------------------------
-
-const createTemplateStyles = (compact: boolean) => StyleSheet.create({
-  page: {
-    fontFamily: "Roboto",
-    fontSize: compact ? 8.8 : 9.5,
-    color: "#1e293b",
-    paddingTop: compact ? 24 : 32,
-    paddingBottom: compact ? 24 : 32,
-    paddingHorizontal: compact ? 30 : 36,
-    backgroundColor: "#ffffff",
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: compact ? 10 : 14,
-    borderBottomWidth: 1.5,
-    borderBottomColor: "#0f172a",
-    paddingBottom: compact ? 8 : 12,
-  },
-  headerText: {
-    flexGrow: 1,
-    paddingRight: 12,
-  },
-  name: {
-    fontSize: compact ? 20 : 22,
-    fontFamily: "Roboto",
-    fontWeight: "bold",
-    color: "#0f172a",
-    letterSpacing: -0.5,
-    marginBottom: compact ? 1 : 2,
-  },
-  jobTitle: {
-    fontSize: compact ? 10.5 : 11.5,
-    color: "#475569",
-    fontWeight: 500,
-    marginBottom: compact ? 4 : 6,
-  },
-  contactRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    fontSize: compact ? 8 : 8.5,
-    color: "#64748b",
-  },
-  contactItem: {
-    marginRight: compact ? 10 : 12,
-    marginBottom: compact ? 1.5 : 2,
-    color: "#64748b",
-    textDecoration: "none",
-  },
-  photo: {
-    width: compact ? 72 : 84,
-    height: compact ? 72 : 84,
-    borderRadius: 6,
-    objectFit: "cover",
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-  },
-  sectionTitle: {
-    fontSize: compact ? 10 : 11,
-    fontFamily: "Roboto",
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    color: "#0f172a",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
-    paddingBottom: compact ? 2 : 3,
-    marginTop: compact ? 7 : 10,
-    marginBottom: compact ? 4 : 6,
-  },
-  summaryText: {
-    fontSize: compact ? 8.5 : 9,
-    lineHeight: compact ? 1.35 : 1.45,
-    color: "#334155",
-  },
-  entryBlock: {
-    marginBottom: compact ? 4 : 7,
-  },
-  entryHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-  },
-  entryTitle: {
-    fontSize: compact ? 9.5 : 10,
-    fontFamily: "Roboto",
-    fontWeight: "bold",
-    color: "#0f172a",
-  },
-  entrySubtitle: {
-    fontSize: compact ? 9 : 9.5,
-    color: "#334155",
-    fontWeight: 500,
-  },
-  entryDates: {
-    fontSize: compact ? 8 : 8.5,
-    color: "#64748b",
-  },
-  entryLocation: {
-    fontSize: compact ? 8 : 8.5,
-    color: "#64748b",
-  },
-  bulletRow: {
-    flexDirection: "row",
-    marginTop: compact ? 1.5 : 2.5,
-  },
-  bulletDot: {
-    width: compact ? 7 : 8,
-    fontSize: compact ? 8 : 8.5,
-    color: "#64748b",
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: compact ? 8.5 : 9,
-    lineHeight: compact ? 1.25 : 1.35,
-    color: "#334155",
-  },
-  skillsWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: compact ? 1.5 : 2,
-  },
-  skillChip: {
-    fontSize: compact ? 8 : 8.5,
-    color: "#1e293b",
-    backgroundColor: "#f1f5f9",
-    paddingVertical: compact ? 1.5 : 2,
-    paddingHorizontal: compact ? 5 : 6,
-    borderRadius: 3,
-    borderWidth: 0.5,
-    borderColor: "#e2e8f0",
-    marginRight: compact ? 3 : 4,
-    marginBottom: compact ? 2 : 3,
-  },
-  skillCatRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: compact ? 1.5 : 2.5,
-  },
-  skillCatTitle: {
-    fontFamily: "Roboto",
-    fontWeight: 700,
-    fontSize: compact ? 8.8 : 9.5,
-    color: "#0f172a",
-  },
-  skillCatText: {
-    fontFamily: "Roboto",
-    fontSize: compact ? 8.8 : 9.5,
-    color: "#334155",
-  },
-});
+const createTemplateStyles = (compact: boolean) =>
+  StyleSheet.create({
+    page: {
+      fontFamily: "Roboto",
+      fontSize: compact ? 8.8 : 9.5,
+      color: "#1a1a1a",
+      paddingTop: compact ? 26 : 34,
+      paddingBottom: compact ? 26 : 34,
+      paddingHorizontal: compact ? 32 : 40,
+      backgroundColor: "#ffffff",
+    },
+    header: {
+      flexDirection: "column",
+      alignItems: "center",
+      textAlign: "center",
+      marginBottom: 2,
+    },
+    photo: {
+      width: compact ? 72 : 84,
+      height: compact ? 72 : 84,
+      borderRadius: compact ? 36 : 42,
+      borderWidth: 2,
+      borderColor: "#1E3A5F",
+      marginBottom: compact ? 8 : 12,
+      objectFit: "cover",
+    },
+    name: {
+      fontSize: compact ? 20 : 22,
+      fontFamily: "Roboto",
+      fontWeight: "bold",
+      color: "#1a1a1a",
+      letterSpacing: -0.2,
+      marginBottom: compact ? 2 : 3,
+      textAlign: "center",
+    },
+    jobTitle: {
+      fontSize: compact ? 11 : 12.5,
+      color: "#4a4a4a",
+      marginBottom: compact ? 6 : 8,
+      textAlign: "center",
+    },
+    contactRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      alignItems: "center",
+      fontSize: compact ? 8.5 : 9.5,
+      color: "#6a6a6a",
+    },
+    contactItem: {
+      color: "#6a6a6a",
+      textDecoration: "none",
+    },
+    contactSeparator: {
+      color: "#94a3b8",
+      marginHorizontal: compact ? 4 : 6,
+    },
+    headerDivider: {
+      height: 2,
+      backgroundColor: "#1E3A5F",
+      width: "100%",
+      marginTop: compact ? 10 : 14,
+      marginBottom: compact ? 12 : 16,
+    },
+    sectionTitle: {
+      fontSize: compact ? 11 : 12.5,
+      fontFamily: "Roboto",
+      fontWeight: "bold",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      color: "#1a1a1a",
+      borderBottomWidth: 1,
+      borderBottomColor: "#cfcfcf",
+      paddingBottom: compact ? 2 : 3,
+      marginTop: compact ? 8 : 12,
+      marginBottom: compact ? 4 : 6,
+    },
+    summaryText: {
+      fontSize: compact ? 8.8 : 9.5,
+      lineHeight: compact ? 1.35 : 1.45,
+      color: "#262626",
+    },
+    entryBlock: {
+      marginBottom: compact ? 5 : 7,
+    },
+    entryHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    },
+    entryTitle: {
+      fontSize: compact ? 9.5 : 10.5,
+      fontFamily: "Roboto",
+      fontWeight: "bold",
+      color: "#1a1a1a",
+    },
+    entrySubtitle: {
+      fontSize: compact ? 8.8 : 9.5,
+      color: "#4a4a4a",
+    },
+    entryDates: {
+      fontSize: compact ? 8 : 9,
+      color: "#6a6a6a",
+    },
+    entryLocation: {
+      fontSize: compact ? 8 : 9,
+      color: "#6a6a6a",
+    },
+    bulletRow: {
+      flexDirection: "row",
+      marginTop: compact ? 1.5 : 2,
+    },
+    bulletDot: {
+      width: compact ? 7 : 8,
+      fontSize: compact ? 8 : 8.5,
+      color: "#6a6a6a",
+    },
+    bulletText: {
+      flex: 1,
+      fontSize: compact ? 8.5 : 9,
+      lineHeight: compact ? 1.25 : 1.35,
+      color: "#262626",
+    },
+    skillsWrap: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginTop: compact ? 1.5 : 2,
+    },
+    skillChip: {
+      fontSize: compact ? 8 : 8.8,
+      color: "#1a1a1a",
+      backgroundColor: "#f8fafc",
+      paddingVertical: compact ? 1.5 : 2,
+      paddingHorizontal: compact ? 5 : 6,
+      borderRadius: 3,
+      borderWidth: 0.5,
+      borderColor: "#cbd5e1",
+      marginRight: compact ? 3 : 4,
+      marginBottom: compact ? 2 : 3,
+    },
+    skillCatRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginBottom: compact ? 1.5 : 2.5,
+    },
+    skillCatTitle: {
+      fontFamily: "Roboto",
+      fontWeight: "bold",
+      fontSize: compact ? 8.8 : 9.5,
+      color: "#1a1a1a",
+    },
+    skillCatText: {
+      fontFamily: "Roboto",
+      fontSize: compact ? 8.8 : 9.5,
+      color: "#262626",
+    },
+  });
 
 type TemplateStyles = ReturnType<typeof createTemplateStyles>;
 
@@ -263,8 +261,6 @@ function SkillsList({ entries, styles }: { entries: CVEntry[]; styles: TemplateS
   );
 }
 
-// ChipList removed in favor of SkillsList
-
 function Section({
   section,
   lang,
@@ -299,7 +295,7 @@ function Section({
   );
 }
 
-export function ATSClassicTemplate({ data, compact = false }: CVTemplateProps) {
+export function ATSPhotoTemplate({ data, compact = false }: CVTemplateProps) {
   const styles = createTemplateStyles(compact);
   const sortedSections = sortByOrderKey(data.sections);
   const lang = (data.language || "tr") as "tr" | "en";
@@ -328,36 +324,44 @@ export function ATSClassicTemplate({ data, compact = false }: CVTemplateProps) {
   return (
     <Document title={`${data.fullName || "CV"} - Resume`} author={data.fullName || "User"}>
       <Page size="A4" style={styles.page}>
-        {/* Header section */}
-        <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <Text style={styles.name}>{data.fullName || "Your Name"}</Text>
-            {data.jobTitle ? <Text style={styles.jobTitle}>{data.jobTitle}</Text> : null}
-            <View style={styles.contactRow}>
-              {contactItems.map((item, i) =>
-                item.href ? (
-                  <Link key={i} src={item.href} style={styles.contactItem}>
-                    {item.text}
-                  </Link>
-                ) : (
-                  <Text key={i} style={styles.contactItem}>
-                    {item.text}
-                  </Text>
-                )
-              )}
-            </View>
-          </View>
-
+        {/* Centered Header section */}
+        <View style={styles.header}>
+          {/* Conditional Photo rendering: only when photoPath exists */}
           {data.photoPath ? (
             <Image
               src={data.photoPath}
               style={[
                 styles.photo,
-                { width: photoDimension, height: photoDimension },
+                {
+                  width: photoDimension,
+                  height: photoDimension,
+                  borderRadius: photoDimension / 2,
+                },
               ]}
             />
           ) : null}
+
+          <Text style={styles.name}>{data.fullName || "Your Name"}</Text>
+          {data.jobTitle ? <Text style={styles.jobTitle}>{data.jobTitle}</Text> : null}
+
+          <View style={styles.contactRow}>
+            {contactItems.map((item, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <Text style={styles.contactSeparator}>•</Text>}
+                {item.href ? (
+                  <Link src={item.href} style={styles.contactItem}>
+                    {item.text}
+                  </Link>
+                ) : (
+                  <Text style={styles.contactItem}>{item.text}</Text>
+                )}
+              </React.Fragment>
+            ))}
+          </View>
         </View>
+
+        {/* Decorative Divider */}
+        <View style={styles.headerDivider} />
 
         {/* Summary section */}
         {data.summary ? (
@@ -391,3 +395,5 @@ export function ATSClassicTemplate({ data, compact = false }: CVTemplateProps) {
     </Document>
   );
 }
+
+export default ATSPhotoTemplate;

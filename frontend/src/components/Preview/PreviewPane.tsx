@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useCVStore } from "../../store/useCVStore";
 import { ResumeSheet } from "./ResumeSheet";
 import { ATSCheckerModal } from "./ATSCheckerModal";
-import { ATSClassicTemplate } from "../../templates/ATSClassicTemplate";
+import { getCVTemplate } from "../../templates/templateRegistry";
 import { WailsBridge } from "../../lib/wailsBridge";
 import { useTranslation } from "../../i18n";
 import { pdf } from "@react-pdf/renderer";
@@ -21,7 +21,8 @@ export const PreviewPane: React.FC = () => {
     if (!currentCV) return;
     try {
       setIsExporting(true);
-      const doc = <ATSClassicTemplate data={currentCV} compact={false} />;
+      const TemplateComponent = getCVTemplate(currentCV.templateId);
+      const doc = <TemplateComponent data={currentCV} compact={false} />;
       const blob = await pdf(doc).toBlob();
       const reader = new FileReader();
       reader.readAsDataURL(blob);

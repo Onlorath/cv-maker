@@ -45,6 +45,7 @@ export interface CVData {
   website: string;
   summary: string;
   photoPath?: string | null;
+  photoSize?: number;
   sections: CVSection[];
 }
 
